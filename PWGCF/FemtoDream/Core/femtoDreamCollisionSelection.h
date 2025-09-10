@@ -489,7 +489,7 @@ class FemtoDreamCollisionSelection
   }
 
  private:
-  HistogramRegistry* mHistogramRegistry = nullptr; ///< For QA output
+  HistogramRegistry* mHistogramRegistry = nullptr; ///< For QA output 
   bool mCutsSet = false;                           ///< Protection against running without cuts
   bool mCheckTrigger = false;                      ///< Check for trigger
   bool mCheckOffline = false;                      ///< Check for offline criteria (might change)
