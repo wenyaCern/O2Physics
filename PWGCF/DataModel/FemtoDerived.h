@@ -51,7 +51,7 @@ DECLARE_SOA_COLUMN(BitMaskTrackThree, bitmaskTrackThree, BitMaskType); //! Bit f
 
 DECLARE_SOA_COLUMN(Downsample, downsample, bool); //! Flag for downsampling
 
-DECLARE_SOA_COLUMN(QnBin, qnBin, int);             //! Bin of qn-vector of the event
+DECLARE_SOA_COLUMN(QnBin, qnBin, int); //! Bin of qn-vector of the event
 
 } // namespace femtodreamcollision
 

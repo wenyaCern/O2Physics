@@ -110,8 +110,8 @@ struct femtoDreamProducerReducedTask {
   struct : o2::framework::ConfigurableGroup {
     Configurable<bool> ConfgFlowCalculate{"ConfgFlowCalculate", false, "Evt sel: Cumulant of flow"}; // To do
     Configurable<bool> ConfgQnSeparation{"ConfgQnSeparation", false, "Evt sel: Qn of event"};
-    Configurable<std::vector<float>> ConfQnBinSeparator{"ConfQnBinSeparator", std::vector<float>{-999.f, -999.f, -999.f}, "Qn bin separator"};    
-    Configurable<float> ConfCentralityMax{"ConfCentralityMax", 80.f, "Evt sel: Maximum Centrality cut"};    
+    Configurable<std::vector<float>> ConfQnBinSeparator{"ConfQnBinSeparator", std::vector<float>{-999.f, -999.f, -999.f}, "Qn bin separator"};
+    Configurable<float> ConfCentralityMax{"ConfCentralityMax", 80.f, "Evt sel: Maximum Centrality cut"};
     Configurable<float> ConfCentBinWidth{"ConfCentBinWidth", 1.f, "Centrality bin length for qn separator"};
     Configurable<int> ConfQnBinMin{"ConfQnBinMin", 0, "Minimum qn bin"};
     Configurable<int> ConfQnBinMax{"ConfQnBinMax", 10, "Maximum qn bin"};
@@ -156,8 +156,8 @@ struct femtoDreamProducerReducedTask {
     trackCuts.init<aod::femtodreamparticle::ParticleType::kTrack,
                    aod::femtodreamparticle::TrackType::kNoChild,
                    aod::femtodreamparticle::cutContainerType>(&qaRegistry, &Registry);
-    
-    if (qnCal.ConfgFlowCalculate){
+
+    if (qnCal.ConfgFlowCalculate) {
       colCuts.initFlow(&FlowRegistry, qnCal.ConfgQnSeparation);
     }
 
@@ -454,7 +454,7 @@ struct femtoDreamProducerReducedTask {
   }
 
   // Calculate and separate qn bins
-  // Do and fill cumulant in qn bins 
+  // Do and fill cumulant in qn bins
   template <bool isMC, typename CollisionType, typename TrackType>
   void fillCollisionsFlow(CollisionType const& col, TrackType const& tracks)
   {
@@ -481,18 +481,18 @@ struct femtoDreamProducerReducedTask {
     }
 
     // Pileup rejection in PbPb data
-    if (evtSel_PbPb.ConfIsPbPb && !colCuts.isPileUpCollisionPbPb(col)){
+    if (evtSel_PbPb.ConfIsPbPb && !colCuts.isPileUpCollisionPbPb(col)) {
       return;
     }
 
-    // Calculate and fill qnBins 
+    // Calculate and fill qnBins
     auto qnBin = colCuts.myqnBin(col, qnCal.ConfCentralityMax, qnCal.ConfQnBinSeparator, spher, multNtr, 1.f);
-    if (qnBin < qnCal.ConfQnBinMin || qnBin > qnCal.ConfQnBinMax){
+    if (qnBin < qnCal.ConfQnBinMin || qnBin > qnCal.ConfQnBinMax) {
       qnBin = -999;
     }
     colCuts.fillCumulants(col, tracks);
     colCuts.doCumulants(col, qnCal.ConfgQnSeparation, qnBin);
-    outputExtQnCollision(qnBin);      
+    outputExtQnCollision(qnBin);
   }
 
   void processData(aod::FemtoFullCollision const& col, aod::BCsWithTimestamps const&, aod::FemtoFullTracks const& tracks)
@@ -534,7 +534,7 @@ struct femtoDreamProducerReducedTask {
     fillCollisionsAndTracks<true, false>(col, tracksWithItsPid);
   }
   PROCESS_SWITCH(femtoDreamProducerReducedTask, processMC_noCentrality, "Provide MC data", false);
-  
+
   void processData_FlowCalc(aod::FemtoFullCollision_CentPbPb const& col,
                             aod::BCsWithTimestamps const&,
                             aod::FemtoFullTracks const& tracks)
@@ -543,9 +543,9 @@ struct femtoDreamProducerReducedTask {
     getMagneticFieldTesla(col.bc_as<aod::BCsWithTimestamps>());
     auto tracksWithItsPid = soa::Attach<aod::FemtoFullTracks, aod::pidits::ITSNSigmaEl, aod::pidits::ITSNSigmaPi, aod::pidits::ITSNSigmaKa,
                                         aod::pidits::ITSNSigmaPr, aod::pidits::ITSNSigmaDe, aod::pidits::ITSNSigmaTr, aod::pidits::ITSNSigmaHe>(tracks);
-    // fill the tables                                   
+    // fill the tables
     fillCollisionsAndTracks_PbPb<false, true>(col, tracksWithItsPid);
-    if (qnCal.ConfgQnSeparation){
+    if (qnCal.ConfgQnSeparation) {
       fillCollisionsFlow<false>(col, tracksWithItsPid);
     }
   }
