@@ -84,8 +84,8 @@ struct femtoDreamPairTaskTrackTrack {
 
   /// qn-separator
   struct : ConfigurableGroup {
-    Configurable<bool> doQnSeparation{"doQnSeparation", false, "Do qn separation"}; 
-    Configurable<bool> storeEvtTrkInfo{"storeEvtTrkInfo", false, "Fill info of track1 and track2 while pariing in divided qn bins"}; 
+    Configurable<bool> doQnSeparation{"doQnSeparation", false, "Do qn separation"};
+    Configurable<bool> storeEvtTrkInfo{"storeEvtTrkInfo", false, "Fill info of track1 and track2 while pariing in divided qn bins"};
     Configurable<int> numQnBins{"numQnBins", 10, "Number of qn bins"};
   } qnCal;
 
@@ -282,10 +282,10 @@ struct femtoDreamPairTaskTrackTrack {
       pairCloseRejectionME.init(&Registry, &Registry, Option.CPRdeltaPhiMax.value, Option.CPRdeltaEtaMax.value, Option.CPRPlotPerRadii.value, 2, Option.CPROld.value);
     }
 
-    if (qnCal.doQnSeparation){
+    if (qnCal.doQnSeparation) {
       sameEventQnCont.init_qn(&Registry,
-                            Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile,
-                            Option.IsMC, Option.HighkstarCut);  
+                              Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile,
+                              Option.IsMC, Option.HighkstarCut);
     }
 
     // get bit for the collision mask
@@ -644,7 +644,7 @@ struct femtoDreamPairTaskTrackTrack {
   template <bool isMC, typename PartitionType, typename PartType, typename Collision>
   void doSameEventQn(PartitionType SliceTrk1, PartitionType SliceTrk2, PartType parts, Collision col)
   {
-    if (qnCal.storeEvtTrkInfo){   
+    if (qnCal.storeEvtTrkInfo) {
       for (auto& part : SliceTrk1) {
         trackHistoPartOne.fillQA<isMC, false>(part, aod::femtodreamparticle::kPt, col.multNtr(), col.multV0M());
       }
@@ -707,7 +707,7 @@ struct femtoDreamPairTaskTrackTrack {
     if (SliceTrk1.size() == 0 && SliceTrk2.size() == 0) {
       return;
     }
-    if (qnCal.doQnSeparation){
+    if (qnCal.doQnSeparation) {
       doSameEventQn<false>(SliceTrk1, SliceTrk2, parts, col);
     }
   }
