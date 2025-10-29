@@ -274,16 +274,15 @@ struct femtoDreamProducerTask {
   } rctCut;
 
   struct : o2::framework::ConfigurableGroup {
-    std::string prefix = std::string("qnCal");
-    Configurable<bool> ConfFlowCalculate{"ConfFlowCalculate", false, "Evt sel: Cumulant of flow"}; // To do
-    Configurable<bool> ConfQnSeparation{"ConfQnSeparation", false, "Evt sel: Qn of event"};
-    Configurable<std::vector<float>> ConfQnBinSeparator{"ConfQnBinSeparator", std::vector<float>{-999.f, -999.f, -999.f}, "Qn bin separator"};
-    Configurable<bool> ConfdoFillHisto{"ConfdoFillHisto", false, "Fill histos for Qn and sphericity and mult "};
-    Configurable<float> ConfCentralityMax{"ConfCentralityMax", 80.f, "Evt sel: Maximum Centrality cut"};
+    std::string prefix = std::string("epCal");
+    Configurable<bool> ConfFillFlowQA{"ConfFillFlowQA", false, "Evt sel: fill flow/event-plane related observables"};
+    Configurable<bool> ConfQnSeparation{"ConfQnSeparation", false, "Evt sel: do qn separation of events"};
+    Configurable<std::vector<float>> ConfQnBinSeparator{"ConfQnBinSeparator", std::vector<float>{-999.f, -999.f, -999.f}, "qn bin separator"};
+    Configurable<bool> ConfDoCumlant{"ConfDoCumlant", false, "do cumulant for flow calculation"};
+    Configurable<float> ConfCentralityMax{"ConfCentralityMax", 100.f, "Evt sel: Maximum Centrality cut"};
     Configurable<float> ConfCentBinWidth{"ConfCentBinWidth", 1.f, "Centrality bin length for qn separator"};
-    Configurable<int> ConfQnBinMin{"ConfQnBinMin", 0, "Minimum qn bin"};
     Configurable<int> ConfNumQnBins{"ConfNumQnBins", 10, "Number of qn bins"};
-  } qnCal;
+  } epCal;
 
   struct : o2::framework::ConfigurableGroup {
     std::string prefix = std::string("OptionEvtSpecialSelections");
@@ -300,7 +299,7 @@ struct femtoDreamProducerTask {
   HistogramRegistry V0Registry{"V0", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry ResoRegistry{"Reso", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry CascadeRegistry{"Cascade", {}, OutputObjHandlingPolicy::AnalysisObject};
-  HistogramRegistry FlowRegistry{"Qn", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry FlowRegistry{"Flow", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   int mRunNumber;
   float mMagField;
@@ -310,10 +309,10 @@ struct femtoDreamProducerTask {
 
   void init(InitContext&)
   {
-    if (doprocessData == false && doprocessData_noCentrality == false && doprocessData_CentPbPb == false && doprocessData_CentPbPb_qvec == false && doprocessMC == false && doprocessMC_noCentrality == false && doprocessMC_CentPbPb == false) {
+    if (doprocessData == false && doprocessData_noCentrality == false && doprocessData_CentPbPb == false && doprocessData_CentPbPb_EP == false && doprocessMC == false && doprocessMC_noCentrality == false && doprocessMC_CentPbPb == false) {
       LOGF(fatal, "Neither processData nor processMC enabled. Please choose one.");
     }
-    if ((doprocessData == true && doprocessMC == true) || (doprocessData == true && doprocessMC_noCentrality == true) || (doprocessMC == true && doprocessMC_noCentrality == true) || (doprocessData_noCentrality == true && doprocessData == true) || (doprocessData_noCentrality == true && doprocessMC == true) || (doprocessData_noCentrality == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessData == true) || (doprocessData_CentPbPb == true && doprocessData_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessMC == true) || (doprocessData_CentPbPb == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessMC_CentPbPb == true) || (doprocessData_CentPbPb_qvec == true && doprocessData == true) || (doprocessData_CentPbPb_qvec == true && doprocessData_noCentrality == true) || (doprocessData_CentPbPb_qvec == true && doprocessMC == true) || (doprocessData_CentPbPb_qvec == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb_qvec == true && doprocessMC_CentPbPb == true) || (doprocessData_CentPbPb_qvec == true && doprocessData_CentPbPb == true)) {
+    if ((doprocessData == true && doprocessMC == true) || (doprocessData == true && doprocessMC_noCentrality == true) || (doprocessMC == true && doprocessMC_noCentrality == true) || (doprocessData_noCentrality == true && doprocessData == true) || (doprocessData_noCentrality == true && doprocessMC == true) || (doprocessData_noCentrality == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessData == true) || (doprocessData_CentPbPb == true && doprocessData_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessMC == true) || (doprocessData_CentPbPb == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb == true && doprocessMC_CentPbPb == true) || (doprocessData_CentPbPb_EP == true && doprocessData == true) || (doprocessData_CentPbPb_EP == true && doprocessData_noCentrality == true) || (doprocessData_CentPbPb_EP == true && doprocessMC == true) || (doprocessData_CentPbPb_EP == true && doprocessMC_noCentrality == true) || (doprocessData_CentPbPb_EP == true && doprocessMC_CentPbPb == true) || (doprocessData_CentPbPb_EP == true && doprocessData_CentPbPb == true)) {
       LOGF(fatal,
            "Cannot enable more than one process switch at the same time. "
            "Please choose one.");
@@ -465,10 +464,10 @@ struct femtoDreamProducerTask {
       }
     }
 
-    if (qnCal.ConfFlowCalculate) {
-      colCuts.initFlow(&FlowRegistry, qnCal.ConfQnSeparation);
-      if (qnCal.ConfQnSeparation)
-        colCuts.initQn(&FlowRegistry, qnCal.ConfNumQnBins);
+    if (epCal.ConfFillFlowQA) {
+      colCuts.initFlow(&FlowRegistry, epCal.ConfQnSeparation);
+      if (epCal.ConfQnSeparation)
+        colCuts.initEP(&FlowRegistry);
     }
 
     mRunNumber = 0;
@@ -1137,19 +1136,22 @@ struct femtoDreamProducerTask {
   template <typename CollisionType, typename TrackType>
   void fillCollisionsFlow(CollisionType const& col, TrackType const& tracks, float mult, float spher, float multNtr)
   {
-    float myqn = -999.;
-    // Calculate and fill qn values
-    if (qnCal.ConfQnSeparation) {
-      myqn = colCuts.computeqnVec(col);
-      outputExtQnCollision(myqn, col.trackOccupancyInTimeRange());
-    }
+    float myqn = colCuts.computeqnVec(col);
+    float myEP = colCuts.computeEP(col);
+    
+    if ((myqn>=0 && myqn<1e6) || (myEP>=0 && myEP<1e6)){
+      outputExtQnCollision(myqn, col.trackOccupancyInTimeRange(), myEP);
+    } 
+    
     // Calculate flow via cumulant
-    if (qnCal.ConfFlowCalculate) {
-      int qnBin = colCuts.myqnBin(mult, qnCal.ConfCentralityMax, qnCal.ConfQnBinSeparator, qnCal.ConfdoFillHisto, spher, myqn, qnCal.ConfNumQnBins, multNtr, qnCal.ConfCentBinWidth);
-      if (qnBin < qnCal.ConfQnBinMin || qnBin > qnCal.ConfNumQnBins) {
-        qnBin = -999;
+    if (epCal.ConfFillFlowQA) {
+      if (epCal.ConfQnSeparation){
+        colCuts.myqnBin(mult, epCal.ConfCentralityMax, epCal.ConfQnBinSeparator, myqn, epCal.ConfNumQnBins, epCal.ConfCentBinWidth);
       }
-      colCuts.doCumulants(col, tracks, mult, qnCal.ConfQnSeparation);
+      colCuts.fillEP(mult, spher, myqn, myEP);
+      if (epCal.ConfDoCumlant){
+        colCuts.doCumulants(col, tracks, mult, epCal.ConfQnSeparation);
+      }
     }
   }
 
@@ -1215,7 +1217,7 @@ struct femtoDreamProducerTask {
   PROCESS_SWITCH(femtoDreamProducerTask, processData_CentPbPb,
                  "Provide experimental data with centrality information for PbPb collisions", false);
 
-  void processData_CentPbPb_qvec(aod::FemtoFullCollision_CentPbPb_qvec const& col,
+  void processData_CentPbPb_EP(aod::FemtoFullCollision_CentPbPb_qvec const& col,
                                  aod::BCsWithTimestamps const&,
                                  aod::FemtoFullTracks const& tracks,
                                  o2::aod::V0Datas const& fullV0s,
@@ -1232,7 +1234,7 @@ struct femtoDreamProducerTask {
       fillCollisionsAndTracksAndV0AndCascade<false, false, true, true, true>(col, tracks, tracks, fullV0s, fullCascades);
     }
   }
-  PROCESS_SWITCH(femtoDreamProducerTask, processData_CentPbPb_qvec,
+  PROCESS_SWITCH(femtoDreamProducerTask, processData_CentPbPb_EP,
                  "Provide experimental data with centrality and q-vector table for PbPb collisions", false);
 
   void processMC(aod::FemtoFullCollisionMC const& col,
