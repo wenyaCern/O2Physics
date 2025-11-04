@@ -1139,7 +1139,7 @@ struct femtoDreamProducerTask {
     float myqn = colCuts.computeqnVec(col);
     float myEP = colCuts.computeEP(col,2);
     
-    if ((myqn>=0 && myqn<1e6) || (myEP>=0 && myEP<1e6)){
+    if ((myqn>=0 && myqn<1e6) || (myEP>=-3 && myEP<3)){
       outputExtQnCollision(myqn, col.trackOccupancyInTimeRange(), myEP);
     } 
     

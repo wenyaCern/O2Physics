@@ -340,8 +340,9 @@ class FemtoDreamCollisionSelection
   template <typename T>
   float computeEP(T const& col,int nmode)
   {
-    double EP_deg = ((1. / nmode) * (TMath::ATan2(col.qvecFT0CImVec()[0], col.qvecFT0CReVec()[0])));
-    return ROOT::TMath::DegToRad() * EP_deg;
+    double EP = ((1. / nmode) * (TMath::ATan2(col.qvecFT0CImVec()[0], col.qvecFT0CReVec()[0])));
+    // atan2 return in rad -pi/2-pi/2
+    return EP;
   }
 
   /// \return the 1-d qn-vector separator to 2-d
@@ -378,9 +379,9 @@ class FemtoDreamCollisionSelection
       return -999; // safe fallback
     }
 
-    if (doFillHisto)
-      mHistogramQn->fill(HIST("Event/centFT0CBefore"), centrality);
-
+    // if (doFillHisto)
+    //   mHistogramQn->fill(HIST("Event/centFT0CBefore"), centrality);
+    // add a param : bool doFillHisto ?
     int qnBin = -999;
     int mycentBin = static_cast<int>(centrality / centBinWidth);
     if (mycentBin >= static_cast<int>(centMax / centBinWidth))

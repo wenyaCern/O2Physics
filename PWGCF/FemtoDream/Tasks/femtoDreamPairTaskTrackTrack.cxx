@@ -240,7 +240,7 @@ struct femtoDreamPairTaskTrackTrack {
     ConfigurableAxis MultPercentileMixBins{"MultPercentileMixBins", {VARIABLE_WIDTH, 0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f}, "Mixing bins - multiplicity percentile"};
     ConfigurableAxis VztxMixBins{"VztxMixBins", {VARIABLE_WIDTH, -10.0f, -8.f, -6.f, -4.f, -2.f, 0.f, 2.f, 4.f, 6.f, 8.f, 10.f}, "Mixing bins - z-vertex"};
     ConfigurableAxis QnMixBins{"QnMixBins", {VARIABLE_WIDTH, 0.50f, 68.50f, 100.50f, 126.50f, 151.50f, 176.50f, 203.50f, 232.50f, 269.50f, 322.50f, 833.50f}, "Mixing bins - qn-value"};
-    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, TMath::Pi()*0.25，TMath::Pi()*0.5，TMath::Pi()*0.75，TMath::Pi()，TMath::Pi()*1.25，TMath::Pi()*1.5，TMath::Pi()*1.75，TMath::Pi()*2}, "Mixing bins - event plane (rad)"};
+    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, TMath::Pi(),TMath::Pi()*2}, "Mixing bins - event plane (deg)"};
     Configurable<int> Depth{"Depth", 5, "Number of events for mixing"};
     Configurable<int> Policy{"Policy", 0, "Binning policy for mixing - 0: multiplicity, 1: multipliciy percentile, 2: both, 3: multipliciy percentile and qn value, 4: multipliciy percentile and event plane"};
   } Mixing;
@@ -823,7 +823,8 @@ struct femtoDreamPairTaskTrackTrack {
         continue;
       }
 
-      auto myEP = ROOT::TMath::RadToDeg()*collision1.eventPlane();
+      // auto myEP = ROOT::TMath::RadToDeg()*collision1.eventPlane();
+      auto myEP = collision1.eventPlane();
 
       for (auto& [p1, p2] : combinations(CombinationsFullIndexPolicy(SliceTrk1, SliceTrk2))) {
         if (Option.CPROn.value) {

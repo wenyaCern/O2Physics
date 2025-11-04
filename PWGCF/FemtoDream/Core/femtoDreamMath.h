@@ -22,6 +22,7 @@
 #include "Math/Boost.h"
 #include "TLorentzVector.h"
 #include "TMath.h"
+#include <Math/VectorUtil.h>
 
 namespace o2::analysis::femtoDream
 {
@@ -163,7 +164,7 @@ class FemtoDreamMath
   {
     const double e1 = std::sqrt(std::pow(part1.px(), 2) + std::pow(part1.py(), 2) + std::pow(part1.pz(), 2) + std::pow(mass1, 2));
     const double e2 = std::sqrt(std::pow(part2.px(), 2) + std::pow(part2.py(), 2) + std::pow(part2.pz(), 2) + std::pow(mass2, 2));
-•
+
     const ROOT::Math::PxPyPzEVector vecpart1(part1.px(), part1.py(), part1.pz(), e1);
     const ROOT::Math::PxPyPzEVector vecpart2(part2.px(), part2.py(), part2.pz(), e2);
     const ROOT::Math::PxPyPzEVector trackSum = vecpart1 + vecpart2;
@@ -180,7 +181,7 @@ class FemtoDreamMath
     const double tM = std::sqrt(tMtSq - tPtSq);
     const double tMt = std::sqrt(tMtSq);
     const double tPt = std::sqrt(tPtSq);
-    const double tPhi = 
+    // const double tPhi = -999.;
     // Boost to LCMS
 
     const double beta = tPz / tE;
