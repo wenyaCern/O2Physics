@@ -89,7 +89,7 @@ struct femtoDreamPairTaskTrackTrack {
   FemtoDreamCollisionSelection epCalculator;
   struct : ConfigurableGroup {
     std::string prefix = std::string("EPCal");
-    Configurable<float> do3DFemto{"do1DFemto", 1.f, "Do 1D femtoscopy"};
+    Configurable<float> do1DFemto{"do1DFemto", 1.f, "Do 1D femtoscopy"};
     Configurable<float> do3DFemto{"do3DFemto", 1.f, "Do 3D femtoscopy"};
     Configurable<bool> fillFlowQA{"fillFlowQA", false, "Fill QA histos for flow/event-plane related observables"};
     Configurable<bool> storeEvtTrkInfo{"storeEvtTrkInfo", false, "Fill info of track1 and track2 while pariing in divided qn bins"};
@@ -240,7 +240,7 @@ struct femtoDreamPairTaskTrackTrack {
     ConfigurableAxis MultPercentileMixBins{"MultPercentileMixBins", {VARIABLE_WIDTH, 0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f}, "Mixing bins - multiplicity percentile"};
     ConfigurableAxis VztxMixBins{"VztxMixBins", {VARIABLE_WIDTH, -10.0f, -8.f, -6.f, -4.f, -2.f, 0.f, 2.f, 4.f, 6.f, 8.f, 10.f}, "Mixing bins - z-vertex"};
     ConfigurableAxis QnMixBins{"QnMixBins", {VARIABLE_WIDTH, 0.50f, 68.50f, 100.50f, 126.50f, 151.50f, 176.50f, 203.50f, 232.50f, 269.50f, 322.50f, 833.50f}, "Mixing bins - qn-value"};
-    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, 0.0f, 18.0f, 36.0f, 54.0f, 72.0f, 90.0f, 108.0f, 126.0f, 144.0f, 162.0f, 180.0f}, "Mixing bins - event plane (rad)"};
+    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, TMath::Pi()*0.25，TMath::Pi()*0.5，TMath::Pi()*0.75，TMath::Pi()，TMath::Pi()*1.25，TMath::Pi()*1.5，TMath::Pi()*1.75，TMath::Pi()*2}, "Mixing bins - event plane (rad)"};
     Configurable<int> Depth{"Depth", 5, "Number of events for mixing"};
     Configurable<int> Policy{"Policy", 0, "Binning policy for mixing - 0: multiplicity, 1: multipliciy percentile, 2: both, 3: multipliciy percentile and qn value, 4: multipliciy percentile and event plane"};
   } Mixing;
@@ -717,8 +717,10 @@ struct femtoDreamPairTaskTrackTrack {
       }
     }
 
-    auto myEP = ROOT::TMath::RadToDeg()*col.eventPlane();
-    auto myqnBin;
+    // auto myEP = ROOT::TMath::RadToDeg()*col.eventPlane();
+    //it seems later use for ep are all in rad, so i changed this
+    auto myEP = col.eventPlane();
+    int myqnBin;
     if (EPCal.doQnSeparation || EPCal.do3DFemto){
       myqnBin = epCalculator.myqnBin(col.multV0M(), EPCal.centMax, EPCal.qnBinSeparator, col.qnVal(), EPCal.numQnBins, EPCal.centBinWidth);
       if (myqnBin < EPCal.qnBinMin || myqnBin > EPCal.numQnBins) {
@@ -783,7 +785,7 @@ struct femtoDreamPairTaskTrackTrack {
           sameEventQnCont.setPair_EP<isMC>(p1, p2, col.multV0M(), EPCal.doQnSeparation, myEP);
         }
         if (EPCal.do1DFemto && EPCal.doQnSeparation) {
-          sameEventQnCont.setPair_EP<isMC>(p1, p2, col.multV0M(), EPCal.doQnSeparation, smyqnBin);
+          sameEventQnCont.setPair_EP<isMC>(p1, p2, col.multV0M(), EPCal.doQnSeparation, myqnBin);
         }
         if (EPCal.do3DFemto){
           sameEventQnCont.setPair_3Dqn<isMC>(p1, p2, col.multV0M(), Option.SameSpecies.value, myEP, myqnBin);

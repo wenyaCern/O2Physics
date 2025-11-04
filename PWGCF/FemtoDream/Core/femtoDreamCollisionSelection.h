@@ -338,7 +338,7 @@ class FemtoDreamCollisionSelection
   /// \param col Collision
   /// \return angle of the event plane (rad) of FT0C of the event
   template <typename T>
-  float computeEP(T const& col)
+  float computeEP(T const& col,int nmode)
   {
     double EP_deg = ((1. / nmode) * (TMath::ATan2(col.qvecFT0CImVec()[0], col.qvecFT0CReVec()[0])));
     return ROOT::TMath::DegToRad() * EP_deg;
@@ -369,6 +369,7 @@ class FemtoDreamCollisionSelection
   /// Get the bin number of qn-vector(FT0C) of an event
   /// \param centBinWidth centrality bin width, example: per 1%, per 10% ...
   /// \return bin number of qn-vector of the event
+  // add a param : bool doFillHisto ?
   int myqnBin(float centrality, float centMax, std::vector<float> qnBinSeparator, float qn, const int numQnBins, float centBinWidth = 1.f)
   {
     auto twoDSeparator = getQnBinSeparator2D(qnBinSeparator, numQnBins);
@@ -409,7 +410,6 @@ class FemtoDreamCollisionSelection
     mHistogramQn->fill(HIST("Event/centVsqnVsSpher"), centrality, qn, fSpher);
     mHistogramQn->fill(HIST("Event/qnBin"), mQnBin+0.f);
     mHistogramQn->fill(HIST("Event/psiEP"), psiEP);
-    return qnBin;
   }
 
   /// \todo to be implemented!
