@@ -717,7 +717,7 @@ struct femtoDreamPairTaskTrackTrack {
       }
     }
 
-    auto myEP = TMath::RadToDeg()*col.eventPlane();
+    auto myEP = TMath::DegToRad()*col.eventPlane();
     int myqnBin;
     if (EPCal.doQnSeparation || EPCal.do3DFemto){
       myqnBin = epCalculator.myqnBin(col.multV0M(), EPCal.centMax, EPCal.qnBinSeparator, col.qnVal(), EPCal.numQnBins, EPCal.centBinWidth);
@@ -821,7 +821,7 @@ struct femtoDreamPairTaskTrackTrack {
         continue;
       }
 
-      auto myEP = TMath::RadToDeg()*collision1.eventPlane();
+      auto myEP = TMath::DegToRad()*collision1.eventPlane();
 
       for (auto& [p1, p2] : combinations(CombinationsFullIndexPolicy(SliceTrk1, SliceTrk2))) {
         if (Option.CPROn.value) {

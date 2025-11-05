@@ -1136,9 +1136,10 @@ struct femtoDreamProducerTask {
   void fillCollisionsFlow(CollisionType const& col, TrackType const& tracks, float mult, float spher, float multNtr)
   {
     float myqn = colCuts.computeqnVec(col);
-    float myEP = colCuts.computeEP(col,2);
+    float myEP = TMath::RadToDeg()*colCuts.computeEP(col,2);
+    // psi from rad(0-pi) to deg, in table psi would be in deg,from 0-180
     
-    if ((myqn>=0 && myqn<1e6) || (myEP>=-3 && myEP<3)){
+    if ((myqn>=0 && myqn<1e6) || (myEP>=0 && myEP<180)){
       outputExtQnCollision(myqn, col.trackOccupancyInTimeRange(), myEP);
     } 
     
