@@ -466,8 +466,7 @@ struct femtoDreamProducerTask {
 
     if (epCal.ConfFillFlowQA) {
       colCuts.initFlow(&FlowRegistry, epCal.ConfQnSeparation);
-      if (epCal.ConfQnSeparation)
-        colCuts.initEP(&FlowRegistry);
+      colCuts.initEP(&FlowRegistry);
     }
 
     mRunNumber = 0;

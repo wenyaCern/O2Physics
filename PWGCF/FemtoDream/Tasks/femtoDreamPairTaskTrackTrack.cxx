@@ -89,8 +89,8 @@ struct femtoDreamPairTaskTrackTrack {
   FemtoDreamCollisionSelection epCalculator;
   struct : ConfigurableGroup {
     std::string prefix = std::string("EPCal");
-    Configurable<float> do1DFemto{"do1DFemto", 1.f, "Do 1D femtoscopy"};
-    Configurable<float> do3DFemto{"do3DFemto", 1.f, "Do 3D femtoscopy"};
+    Configurable<bool> do1DFemto{"do1DFemto", false, "Do 1D femtoscopy"};
+    Configurable<bool> do3DFemto{"do3DFemto", false, "Do 3D femtoscopy"};
     Configurable<bool> fillFlowQA{"fillFlowQA", false, "Fill QA histos for flow/event-plane related observables"};
     Configurable<bool> storeEvtTrkInfo{"storeEvtTrkInfo", false, "Fill info of track1 and track2 while pariing in divided qn bins"};
     Configurable<bool> doQnSeparation{"doQnSeparation", false, "Do qn separation"};
@@ -717,9 +717,7 @@ struct femtoDreamPairTaskTrackTrack {
       }
     }
 
-    // auto myEP = ROOT::TMath::RadToDeg()*col.eventPlane();
-    //it seems later use for ep are all in rad, so i changed this
-    auto myEP = col.eventPlane();
+    auto myEP = TMath::RadToDeg()*col.eventPlane();
     int myqnBin;
     if (EPCal.doQnSeparation || EPCal.do3DFemto){
       myqnBin = epCalculator.myqnBin(col.multV0M(), EPCal.centMax, EPCal.qnBinSeparator, col.qnVal(), EPCal.numQnBins, EPCal.centBinWidth);
@@ -823,8 +821,7 @@ struct femtoDreamPairTaskTrackTrack {
         continue;
       }
 
-      // auto myEP = ROOT::TMath::RadToDeg()*collision1.eventPlane();
-      auto myEP = collision1.eventPlane();
+      auto myEP = TMath::RadToDeg()*collision1.eventPlane();
 
       for (auto& [p1, p2] : combinations(CombinationsFullIndexPolicy(SliceTrk1, SliceTrk2))) {
         if (Option.CPROn.value) {

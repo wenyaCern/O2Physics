@@ -24,6 +24,8 @@
 #include "Framework/HistogramRegistry.h"
 #include "Framework/Logger.h"
 
+#include "TMath.h"
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -215,12 +217,12 @@ class FemtoDreamCollisionSelection
   void initEP(HistogramRegistry* registry)
   {
     mHistogramQn = registry;
-    mHistogramQn->add("Event/centFT0CBefore", "; cent", kTH1F, {{10, 0, 100}});
-    mHistogramQn->add("Event/centFT0CAfter", "; cent", kTH1F, {{10, 0, 100}});
+    mHistogramQn->add("Event/centFT0CBeforeQn", "; cent", kTH1F, {{10, 0, 100}});
+    mHistogramQn->add("Event/centFT0CAfterQn", "; cent", kTH1F, {{10, 0, 100}});
     mHistogramQn->add("Event/centVsqn", "; cent; qn", kTH2F, {{10, 0, 100}, {100, 0, 1000}});
     mHistogramQn->add("Event/centVsqnVsSpher", "; cent; qn; Sphericity", kTH3F, {{10, 0, 100}, {100, 0, 1000}, {100, 0, 1}});
     mHistogramQn->add("Event/qnBin", "; qnBin; entries", kTH1F, {{20, 0, 20}});
-    mHistogramQn->add("Event/psiEP", "; #Psi_{EP} (rad); entries", kTH1F, {{0, 0, 180}});
+    mHistogramQn->add("Event/psiEP", "; #Psi_{EP} (rad); entries", kTH1F, {{100, 0, 180}});
 
     return;
   }
@@ -390,6 +392,8 @@ class FemtoDreamCollisionSelection
     if (mycentBin > static_cast<int>(twoDSeparator.size()) - 1)
       return qnBin;
 
+    mHistogramQn->fill(HIST("Event/centFT0CAfterQn"), centrality);
+
     for (int iqn(0); iqn < static_cast<int>(twoDSeparator[mycentBin].size()) - 1; ++iqn) {
       if (qn > twoDSeparator[mycentBin][iqn] && qn <= twoDSeparator[mycentBin][iqn + 1]) {
         qnBin = iqn;
@@ -406,7 +410,7 @@ class FemtoDreamCollisionSelection
   /// \fill event-wise informations
   void fillEP(float centrality, float fSpher, float qn, float psiEP)
   {
-    mHistogramQn->fill(HIST("Event/centFT0CAfter"), centrality);
+    mHistogramQn->fill(HIST("Event/centFT0CBeforeQn"), centrality);
     mHistogramQn->fill(HIST("Event/centVsqn"), centrality, qn);
     mHistogramQn->fill(HIST("Event/centVsqnVsSpher"), centrality, qn, fSpher);
     mHistogramQn->fill(HIST("Event/qnBin"), mQnBin+0.f);
