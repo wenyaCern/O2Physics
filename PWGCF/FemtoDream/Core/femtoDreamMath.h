@@ -21,6 +21,7 @@
 #include "Math/Vector4D.h"
 #include "Math/Boost.h"
 #include "TLorentzVector.h"
+#include "TVector2.h"
 #include "TMath.h"
 
 namespace o2::analysis::femtoDream
@@ -180,16 +181,16 @@ class FemtoDreamMath
     const double tM = std::sqrt(tMtSq - tPtSq);
     const double tMt = std::sqrt(tMtSq);
     const double tPt = std::sqrt(tPtSq);
-    const double tPhi = 
+    
     // Boost to LCMS
 
-    const double beta = tPz / tE;
-    const double gamma = tE / tMt;
+    const double beta_LCMS = tPz / tE;
+    const double gamma_LCMS = tE / tMt;
 
     const double fDKOut = (part1.px() * tPx + part1.py() * tPy) / tPt;
     const double fDKSide = (-part1.px() * tPy + part1.py() * tPx) / tPt;
-    const double fDKLong = gamma * (part1.pz() - beta * e1);
-    const double fDE = gamma * (e1 - beta * part1.pz());
+    const double fDKLong = gamma_LCMS * (part1.pz() - beta_LCMS * e1);
+    const double fDE = gamma_LCMS * (e1 - beta_LCMS * part1.pz());
 
     const double px1LCMS = fDKOut;
     const double py1LCMS = fDKSide;
@@ -198,8 +199,8 @@ class FemtoDreamMath
 
     const double px2LCMS = (part2.px() * tPx + part2.py() * tPy) / tPt;
     const double py2LCMS = (part2.py() * tPx - part2.px() * tPy) / tPt;
-    const double pz2LCMS = gamma * (part2.pz() - beta * e2);
-    const double pE2LCMS = gamma * (e2 - beta * part2.pz());
+    const double pz2LCMS = gamma_LCMS * (part2.pz() - beta_LCMS * e2);
+    const double pE2LCMS = gamma_LCMS * (e2 - beta_LCMS * part2.pz());
 
     const double fDKOutLCMS = px1LCMS - px2LCMS;
     const double fDKSideLCMS = py1LCMS - py2LCMS;
@@ -246,7 +247,7 @@ class FemtoDreamMath
     const ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
     const ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
     const ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2;
-    float phi_pair_onPsi = ROOT::Math::VectorUtil::Phi_mpi_pi(trackSum.Phi() - Psi_ep);
+    float phi_pair_onPsi = TVector2::Phi_mpi_pi(trackSum.Phi() - Psi_ep);
     phi_pair_onPsi = TMath::Abs(phi_pair_onPsi);
     return phi_pair_onPsi;
   }

@@ -193,7 +193,7 @@ class FemtoDreamContainer
 
   template <typename T>
   void init_EP(HistogramRegistry* registry,
-               T& kstarBins4D, T& mTBins4D, T& multPercentileBins4D, T& epObsBins, std::string epObs;
+               T& kstarBins4D, T& mTBins4D, T& multPercentileBins4D, T& epObsBins, std::string epObs,
                bool isMC, float highkstarCut)
   {
     mHistogramRegistry = registry;

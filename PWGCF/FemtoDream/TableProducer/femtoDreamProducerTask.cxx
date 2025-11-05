@@ -466,8 +466,7 @@ struct femtoDreamProducerTask {
 
     if (epCal.ConfFillFlowQA) {
       colCuts.initFlow(&FlowRegistry, epCal.ConfQnSeparation);
-      if (epCal.ConfQnSeparation)
-        colCuts.initEP(&FlowRegistry);
+      colCuts.initEP(&FlowRegistry);
     }
 
     mRunNumber = 0;
@@ -1137,7 +1136,7 @@ struct femtoDreamProducerTask {
   void fillCollisionsFlow(CollisionType const& col, TrackType const& tracks, float mult, float spher, float multNtr)
   {
     float myqn = colCuts.computeqnVec(col);
-    float myEP = colCuts.computeEP(col);
+    float myEP = colCuts.computeEP(col, 2);
     
     if ((myqn>=0 && myqn<1e6) || (myEP>=0 && myEP<1e6)){
       outputExtQnCollision(myqn, col.trackOccupancyInTimeRange(), myEP);
