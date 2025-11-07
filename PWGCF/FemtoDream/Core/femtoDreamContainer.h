@@ -235,9 +235,9 @@ class FemtoDreamContainer
   {
     mHistogramRegistry = registry;
 
-    std::string femtoObsDKout = "R_{out} (GeV/#it{c})";
-    std::string femtoObsDKside = "R_{side} (GeV/#it{c})";
-    std::string femtoObsDKlong = "R_{long} (GeV/#it{c})";
+    std::string femtoObsDKout = "DK_{out} (GeV/#it{c})";
+    std::string femtoObsDKside = "DK_{side} (GeV/#it{c})";
+    std::string femtoObsDKlong = "DK_{long} (GeV/#it{c})";
     
     framework::AxisSpec DKoutAxis = {DKoutBins, femtoObsDKout};
     framework::AxisSpec DKsideAxis = {DKsideBins, femtoObsDKside};
