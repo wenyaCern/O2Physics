@@ -343,7 +343,7 @@ class FemtoDreamCollisionSelection
   float computeEP(T const& col,int nmode)
   {
     double EP = ((1. / nmode) * (TMath::ATan2(col.qvecFT0CImVec()[0], col.qvecFT0CReVec()[0])));
-    EP += TMath::Pi()*0.5;
+    if (EP < 0) EP += TMath::Pi();
     // atan2 return in rad -pi/2-pi/2, then make it 0-pi
     return EP;
   }
