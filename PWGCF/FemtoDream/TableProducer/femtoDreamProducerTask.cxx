@@ -466,7 +466,7 @@ struct femtoDreamProducerTask {
 
     if (epCal.ConfFillFlowQA) {
       colCuts.initFlow(&FlowRegistry, epCal.ConfQnSeparation);
-      colCuts.initEP(&FlowRegistry);
+      colCuts.initEPQA(&FlowRegistry);
     }
 
     mRunNumber = 0;
@@ -1144,11 +1144,12 @@ struct femtoDreamProducerTask {
     } 
     
     // Calculate flow via cumulant
+    
+    if (epCal.ConfQnSeparation){
+      colCuts.myqnBin(mult, epCal.ConfCentralityMax, epCal.ConfFillFlowQA, epCal.ConfQnBinSeparator, myqn, epCal.ConfNumQnBins, epCal.ConfCentBinWidth);
+    }
     if (epCal.ConfFillFlowQA) {
-      if (epCal.ConfQnSeparation){
-        colCuts.myqnBin(mult, epCal.ConfCentralityMax, epCal.ConfQnBinSeparator, myqn, epCal.ConfNumQnBins, epCal.ConfCentBinWidth);
-      }
-      colCuts.fillEP(mult, spher, myqn, myEP);
+      colCuts.fillEPQA(mult, spher, myqn, myEP);
       if (epCal.ConfDoCumlant){
         colCuts.doCumulants(col, tracks, mult, epCal.ConfQnSeparation);
       }

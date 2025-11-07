@@ -809,7 +809,6 @@ struct femtoDreamPairTaskTrackTrack {
         if (EPCal.do1DFemto){
           mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation? 0.f : myEP);
         }
-        // TO DO !!! Here is very important!!!!
         if (EPCal.do3DFemto){
           mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP);
         }

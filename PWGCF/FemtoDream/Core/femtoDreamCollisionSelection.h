@@ -214,7 +214,7 @@ class FemtoDreamCollisionSelection
 
   /// Initializes histograms for qn bin
   /// \param registry Histogram registry to be passed
-  void initEP(HistogramRegistry* registry)
+  void initEPQA(HistogramRegistry* registry)
   {
     mHistogramQn = registry;
     mHistogramQn->add("Event/centFT0CBeforeQn", "; cent", kTH1F, {{10, 0, 100}});
@@ -374,7 +374,7 @@ class FemtoDreamCollisionSelection
   /// \param centBinWidth centrality bin width, example: per 1%, per 10% ...
   /// \return bin number of qn-vector of the event
   // add a param : bool doFillHisto ?
-  int myqnBin(float centrality, float centMax, std::vector<float> qnBinSeparator, float qn, const int numQnBins, float centBinWidth = 1.f)
+  int myqnBin(float centrality, float centMax, bool doFillCent, std::vector<float> qnBinSeparator, float qn, const int numQnBins, float centBinWidth = 1.f)
   {
     auto twoDSeparator = getQnBinSeparator2D(qnBinSeparator, numQnBins);
     if (twoDSeparator.empty() || twoDSeparator[0][0] == -999.) {
@@ -393,7 +393,8 @@ class FemtoDreamCollisionSelection
     if (mycentBin > static_cast<int>(twoDSeparator.size()) - 1)
       return qnBin;
 
-    mHistogramQn->fill(HIST("Event/centFT0CAfterQn"), centrality);
+    if (doFillCent)
+      mHistogramQn->fill(HIST("Event/centFT0CAfterQn"), centrality);
 
     for (int iqn(0); iqn < static_cast<int>(twoDSeparator[mycentBin].size()) - 1; ++iqn) {
       if (qn > twoDSeparator[mycentBin][iqn] && qn <= twoDSeparator[mycentBin][iqn + 1]) {
@@ -409,7 +410,7 @@ class FemtoDreamCollisionSelection
   }
 
   /// \fill event-wise informations
-  void fillEP(float centrality, float fSpher, float qn, float psiEP)
+  void fillEPQA(float centrality, float fSpher, float qn, float psiEP)
   {
     mHistogramQn->fill(HIST("Event/centFT0CBeforeQn"), centrality);
     mHistogramQn->fill(HIST("Event/centVsqn"), centrality, qn);
