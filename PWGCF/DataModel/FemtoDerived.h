@@ -57,7 +57,7 @@ DECLARE_SOA_COLUMN(Downsample, downsample, bool); //! Flag for downsampling
 
 DECLARE_SOA_COLUMN(QnVal, qnVal, double);         //! qn values for dividing events
 DECLARE_SOA_COLUMN(Occupancy, occupancy, int); //! Occupancy of the event
-DECLARE_SOA_COLUMN(EventPlane, eventPlane, double); //! Event-plane of the event (rad)
+DECLARE_SOA_COLUMN(EventPlane, eventPlane, double); //! Event-plane of the event (deg)
 } // namespace femtodreamcollision
 
 DECLARE_SOA_TABLE_STAGED(FDCollisions, "FDCOLLISION",
