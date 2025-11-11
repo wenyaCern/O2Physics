@@ -38,7 +38,7 @@ enum CollisionBinning {
   kMultPercentile,     //! Bin collision in multiplicity percentile for mixing
   kMultMultPercentile, //! Bin collision in number of charged tracks and multiplicity percentile for mixing
   kMultPercentileQn,   //! Bin collision in multiplicity percentile and qn value for mixing
-  kMultPercentileEP,   //! Bin collision in multiplicity percentile and event plane (rad) for mixing
+  kMultPercentileEP,   //! Bin collision in multiplicity percentile and event plane (deg) for mixing
   kNCollisionBinning
 };
 
