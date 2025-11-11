@@ -798,7 +798,7 @@ struct femtoDreamPairTaskTrackTrack {
         continue;
       }
 
-      auto myEP = TMath::DegToRad() * collision1.eventPlane();
+      auto myEP_event1 = TMath::DegToRad() * collision1.eventPlane();
       auto myEP_event2 = TMath::DegToRad() * collision2.eventPlane();
 
       for (auto& [p1, p2] : combinations(CombinationsFullIndexPolicy(SliceTrk1, SliceTrk2))) {
@@ -811,10 +811,10 @@ struct femtoDreamPairTaskTrackTrack {
           if (EPCal.doQnSeparation)
             mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, 0.f);
           else
-            mixedEventQnCont.setPair_EP_mix<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, myEP, myEP_event2);
+            mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, myEP_event1, myEP_event2);
         }
         if (EPCal.do3DFemto) {
-          mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP);
+          mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP_event1);
         }
       }
     }
