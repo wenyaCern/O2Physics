@@ -94,6 +94,7 @@ struct femtoDreamPairTaskTrackTrack {
     Configurable<bool> fillFlowQA{"fillFlowQA", false, "Fill QA histos for flow/event-plane related observables"};
     Configurable<bool> storeEvtTrkInfo{"storeEvtTrkInfo", false, "Fill info of track1 and track2 while pariing in divided qn bins"};
     Configurable<bool> doQnSeparation{"doQnSeparation", false, "Do qn separation"};
+    Configurable<bool> doEPReClibForMixing{"doEPReClibForMixing", false, "While mixing, using respective event plane for participating particles azimuthal angle caulculation"};
     Configurable<std::vector<float>> qnBinSeparator{"qnBinSeparator", std::vector<float>{-999.f, -999.f, -999.f}, "Qn bin separator"};
     Configurable<int> numQnBins{"numQnBins", 10, "Number of qn bins"};
     Configurable<int> qnBinMin{"qnBinMin", 0, "Number of qn bins"};
@@ -240,7 +241,7 @@ struct femtoDreamPairTaskTrackTrack {
     ConfigurableAxis MultPercentileMixBins{"MultPercentileMixBins", {VARIABLE_WIDTH, 0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f}, "Mixing bins - multiplicity percentile"};
     ConfigurableAxis VztxMixBins{"VztxMixBins", {VARIABLE_WIDTH, -10.0f, -8.f, -6.f, -4.f, -2.f, 0.f, 2.f, 4.f, 6.f, 8.f, 10.f}, "Mixing bins - z-vertex"};
     ConfigurableAxis QnMixBins{"QnMixBins", {VARIABLE_WIDTH, 0.50f, 68.50f, 100.50f, 126.50f, 151.50f, 176.50f, 203.50f, 232.50f, 269.50f, 322.50f, 833.50f}, "Mixing bins - qn-value"};
-    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, TMath::Pi(), TMath::Pi() * 2}, "Mixing bins - event plane (deg)"};
+    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, 0., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180.}, "Mixing bins - event plane (deg)"};
     Configurable<int> Depth{"Depth", 5, "Number of events for mixing"};
     Configurable<int> Policy{"Policy", 0, "Binning policy for mixing - 0: multiplicity, 1: multipliciy percentile, 2: both, 3: multipliciy percentile and qn value, 4: multipliciy percentile and event plane"};
   } Mixing;
@@ -807,18 +808,28 @@ struct femtoDreamPairTaskTrackTrack {
             continue;
           }
         }
-        if (EPCal.do1DFemto) {
-          if (EPCal.doQnSeparation)
-            mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, 0.f);
-          else
-            mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, myEP_event1, myEP_event2);
+        if (EPCal.doEPReClibForMixing)
+        {
+          if (EPCal.do1DFemto) {
+            if (EPCal.doQnSeparation)
+              mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, 0.f);
+            else
+              mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, myEP_event1, myEP_event2);
+          }
+          if (EPCal.do3DFemto) {
+            mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP_event1, myEP_event2);
+          }
         }
-        if (EPCal.do3DFemto) {
-          mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP_event1);
+        else
+        {
+          if (EPCal.do1DFemto) mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation? 0.f : myEP_event1);
+          if (EPCal.do3DFemto) {
+            mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP_event1);
+          }
         }
       }
     }
-  }
+  };
 
   /// process function for to call doMixedEvent with Data
   /// @param cols subscribe to the collisions table (Data)
