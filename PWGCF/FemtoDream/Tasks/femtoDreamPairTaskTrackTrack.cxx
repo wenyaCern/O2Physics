@@ -111,7 +111,7 @@ struct femtoDreamPairTaskTrackTrack {
   using FilteredCollision = FilteredCollisions::iterator;
   using FilteredMCCollisions = soa::Filtered<soa::Join<aod::FDCollisions, aod::FDMCCollLabels>>;
   using FilteredMCCollision = FilteredMCCollisions::iterator;
-  using FilteredQnCollisions = soa::Filtered<soa::Join<aod::FDCollisions, aod::FDExtQnCollisions>>;
+  using FilteredQnCollisions = soa::Filtered<soa::Join<aod::FDCollisions, aod::FDExtQnCollisions, aod::FDExtEPCollisions>>;
   using FilteredQnCollision = FilteredQnCollisions::iterator;
 
   using FilteredMaskedCollisions = soa::Filtered<soa::Join<FDCollisions, FDColMasks, FDDownSample>>;

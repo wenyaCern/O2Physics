@@ -102,6 +102,7 @@ struct femtoDreamProducerTask {
 
   Produces<aod::FDCollisions> outputCollision;
   Produces<aod::FDExtQnCollisions> outputExtQnCollision;
+  Produces<aod::FDExtEPCollisions> outputExtEPCollision;
   Produces<aod::FDMCCollisions> outputMCCollision;
   Produces<aod::FDMCCollLabels> outputCollsMCLabels;
   Produces<aod::FDParticles> outputParts;
@@ -1136,21 +1137,22 @@ struct femtoDreamProducerTask {
   void fillCollisionsFlow(CollisionType const& col, TrackType const& tracks, float mult, float spher, float multNtr)
   {
     float myqn = colCuts.computeqnVec(col);
-    float myEP = TMath::RadToDeg()*colCuts.computeEP(col,2);
+    float myEP = TMath::RadToDeg() * colCuts.computeEP(col, 2);
     // psi from rad(0-pi) to deg, in table psi would be in deg,from 0-180
-    
-    if ((myqn>=0 && myqn<1e6) || (myEP>=0 && myEP<180)){
-      outputExtQnCollision(myqn, col.trackOccupancyInTimeRange(), myEP);
-    } 
-    
+
+    if ((myqn >= 0 && myqn < 1e6) || (myEP >= 0 && myEP < 180)) {
+      outputExtQnCollision(myqn, col.trackOccupancyInTimeRange());
+      outputExtEPCollision(myEP);
+    }
+
     // Calculate flow via cumulant
-    
-    if (epCal.ConfQnSeparation){
+
+    if (epCal.ConfQnSeparation) {
       colCuts.myqnBin(mult, epCal.ConfCentralityMax, epCal.ConfFillFlowQA, epCal.ConfQnBinSeparator, myqn, epCal.ConfNumQnBins, epCal.ConfCentBinWidth);
     }
     if (epCal.ConfFillFlowQA) {
       colCuts.fillEPQA(mult, spher, myqn, myEP);
-      if (epCal.ConfDoCumlant){
+      if (epCal.ConfDoCumlant) {
         colCuts.doCumulants(col, tracks, mult, epCal.ConfQnSeparation);
       }
     }
@@ -1219,10 +1221,10 @@ struct femtoDreamProducerTask {
                  "Provide experimental data with centrality information for PbPb collisions", false);
 
   void processData_CentPbPb_EP(aod::FemtoFullCollision_CentPbPb_qvec const& col,
-                                 aod::BCsWithTimestamps const&,
-                                 aod::FemtoFullTracks const& tracks,
-                                 o2::aod::V0Datas const& fullV0s,
-                                 o2::aod::CascDatas const& fullCascades)
+                               aod::BCsWithTimestamps const&,
+                               aod::FemtoFullTracks const& tracks,
+                               o2::aod::V0Datas const& fullV0s,
+                               o2::aod::CascDatas const& fullCascades)
   {
     // get magnetic field for run
     initCCDB_Mag_Trig(col.bc_as<aod::BCsWithTimestamps>());
