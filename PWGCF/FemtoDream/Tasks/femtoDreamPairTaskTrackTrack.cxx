@@ -85,7 +85,7 @@ struct femtoDreamPairTaskTrackTrack {
   Filter EventMultiplicity = aod::femtodreamcollision::multNtr >= EventSel.MultMin && aod::femtodreamcollision::multNtr <= EventSel.MultMax && aod::femtodreamcollision::sphericity >= EventSel.SphericityMin;
   Filter EventMultiplicityPercentile = aod::femtodreamcollision::multV0M >= EventSel.MultPercentileMin && aod::femtodreamcollision::multV0M <= EventSel.MultPercentileMax;
 
-  /// qn-separator
+  /// qn&event_plane separator
   FemtoDreamCollisionSelection epCalculator;
   struct : ConfigurableGroup {
     std::string prefix = std::string("EPCal");
@@ -103,7 +103,7 @@ struct femtoDreamPairTaskTrackTrack {
     ConfigurableAxis DKside{"DKside", {500, -2., 2.}, "binning DKside for the 3-D femtoscopy plot: R_side(LCMS) vs mT vs multiplicity percentile vs qnBin vs pait phi wrt EP (set <<do3DFemto>> to true)"};
     ConfigurableAxis DKlong{"DKlong", {500, -2., 2.}, "binning DKlong for the 3-D femtoscopy plot: R_long(LCMS) vs mT vs multiplicity percentile vs qnBin vs pait phi wrt EP (set <<do3DFemto>> to true)"};
     ConfigurableAxis qnBins{"qnBins", {10, 0, 10}, "binning of qn interval"};
-    ConfigurableAxis pairPhiBins{"pairPhiBins", {10, 0-0.05, TMath::Pi()+0.05}, "binning of pair phi"};
+    ConfigurableAxis pairPhiBins{"pairPhiBins", {10, 0 - 0.05, TMath::Pi() + 0.05}, "binning of pair phi"};
   } EPCal;
 
   using FilteredCollisions = soa::Filtered<FDCollisions>;
@@ -240,7 +240,7 @@ struct femtoDreamPairTaskTrackTrack {
     ConfigurableAxis MultPercentileMixBins{"MultPercentileMixBins", {VARIABLE_WIDTH, 0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f}, "Mixing bins - multiplicity percentile"};
     ConfigurableAxis VztxMixBins{"VztxMixBins", {VARIABLE_WIDTH, -10.0f, -8.f, -6.f, -4.f, -2.f, 0.f, 2.f, 4.f, 6.f, 8.f, 10.f}, "Mixing bins - z-vertex"};
     ConfigurableAxis QnMixBins{"QnMixBins", {VARIABLE_WIDTH, 0.50f, 68.50f, 100.50f, 126.50f, 151.50f, 176.50f, 203.50f, 232.50f, 269.50f, 322.50f, 833.50f}, "Mixing bins - qn-value"};
-    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, TMath::Pi(),TMath::Pi()*2}, "Mixing bins - event plane (deg)"};
+    ConfigurableAxis EPMixBins{"EPMixBins", {VARIABLE_WIDTH, TMath::Pi(), TMath::Pi() * 2}, "Mixing bins - event plane (deg)"};
     Configurable<int> Depth{"Depth", 5, "Number of events for mixing"};
     Configurable<int> Policy{"Policy", 0, "Binning policy for mixing - 0: multiplicity, 1: multipliciy percentile, 2: both, 3: multipliciy percentile and qn value, 4: multipliciy percentile and event plane"};
   } Mixing;
@@ -310,8 +310,8 @@ struct femtoDreamPairTaskTrackTrack {
                               Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile, EPCal.doQnSeparation ? EPCal.qnBins : EPCal.pairPhiBins, EPCal.doQnSeparation ? "qnBin" : "#phi_{pair}-#Psi_{EP}",
                               Option.IsMC, Option.HighkstarCut);
       mixedEventQnCont.init_EP(&Registry,
-                              Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile, EPCal.doQnSeparation ? EPCal.qnBins : EPCal.pairPhiBins, EPCal.doQnSeparation ? "qnBin" : "#phi_{pair}-#Psi_{EP}",
-                              Option.IsMC, Option.HighkstarCut); 
+                               Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile, EPCal.doQnSeparation ? EPCal.qnBins : EPCal.pairPhiBins, EPCal.doQnSeparation ? "qnBin" : "#phi_{pair}-#Psi_{EP}",
+                               Option.IsMC, Option.HighkstarCut);
       sameEventQnCont.setPDGCodes(Track1.PDGCode, Track2.PDGCode);
       mixedEventQnCont.setPDGCodes(Track1.PDGCode, Track2.PDGCode);
       if (EPCal.fillFlowQA) {
@@ -321,7 +321,7 @@ struct femtoDreamPairTaskTrackTrack {
 
     if (EPCal.do3DFemto) {
       sameEventQnCont.init_3Dqn(&Registry, EPCal.DKout, EPCal.DKside, EPCal.DKlong,
-                                 Binning4D.mT, Binning4D.multPercentile, Option.IsMC, EPCal.qnBins, EPCal.pairPhiBins);
+                                Binning4D.mT, Binning4D.multPercentile, Option.IsMC, EPCal.qnBins, EPCal.pairPhiBins);
       mixedEventQnCont.init_3Dqn(&Registry, EPCal.DKout, EPCal.DKside, EPCal.DKlong,
                                  Binning4D.mT, Binning4D.multPercentile, Option.IsMC, EPCal.qnBins, EPCal.pairPhiBins);
       sameEventQnCont.setPDGCodes(Track1.PDGCode, Track2.PDGCode);
@@ -703,16 +703,16 @@ struct femtoDreamPairTaskTrackTrack {
       }
     }
 
-    auto myEP = TMath::DegToRad()*col.eventPlane();
+    auto myEP = TMath::DegToRad() * col.eventPlane();
     int myqnBin;
-    if (EPCal.doQnSeparation || EPCal.do3DFemto){
+    if (EPCal.doQnSeparation || EPCal.do3DFemto) {
       myqnBin = epCalculator.myqnBin(col.multV0M(), EPCal.centMax, EPCal.fillFlowQA, EPCal.qnBinSeparator, col.qnVal(), EPCal.numQnBins, EPCal.centBinWidth);
       if (myqnBin < EPCal.qnBinMin || myqnBin > EPCal.numQnBins) {
         myqnBin = -999;
-      }      
+      }
     }
 
-    if (EPCal.fillFlowQA){
+    if (EPCal.fillFlowQA) {
       epCalculator.fillEPQA(col.multV0M(), col.sphericity(), col.qnVal(), col.eventPlane());
     }
 
@@ -734,17 +734,17 @@ struct femtoDreamPairTaskTrackTrack {
         }
         if (rand <= 0.5) {
           if (EPCal.do1DFemto) {
-            sameEventQnCont.setPair_EP<isMC>(p1, p2, col.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation? myqnBin+0.f : myEP);
+            sameEventQnCont.setPair_EP<isMC>(p1, p2, col.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation ? myqnBin + 0.f : myEP);
           }
-          if (EPCal.do3DFemto){
-            sameEventQnCont.setPair_3Dqn<isMC>(p1, p2, col.multV0M(), Option.SameSpecies.value, myqnBin+0.f, myEP);
+          if (EPCal.do3DFemto) {
+            sameEventQnCont.setPair_3Dqn<isMC>(p1, p2, col.multV0M(), Option.SameSpecies.value, myqnBin + 0.f, myEP);
           }
         } else {
           if (EPCal.do1DFemto) {
-            sameEventQnCont.setPair_EP<isMC>(p2, p1, col.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation? myqnBin+0.f : myEP);
+            sameEventQnCont.setPair_EP<isMC>(p2, p1, col.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation ? myqnBin + 0.f : myEP);
           }
-          if (EPCal.do3DFemto){
-            sameEventQnCont.setPair_3Dqn<isMC>(p2, p1, col.multV0M(), Option.SameSpecies.value, myqnBin+0.f, myEP);
+          if (EPCal.do3DFemto) {
+            sameEventQnCont.setPair_3Dqn<isMC>(p2, p1, col.multV0M(), Option.SameSpecies.value, myqnBin + 0.f, myEP);
           }
         }
       }
@@ -760,11 +760,11 @@ struct femtoDreamPairTaskTrackTrack {
           continue;
         }
         if (EPCal.do1DFemto) {
-          sameEventQnCont.setPair_EP<isMC>(p1, p2, col.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation? myqnBin+0.f : myEP);
+          sameEventQnCont.setPair_EP<isMC>(p1, p2, col.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation ? myqnBin + 0.f : myEP);
         }
-        if (EPCal.do3DFemto){
+        if (EPCal.do3DFemto) {
           sameEventQnCont.setPair_3Dqn<isMC>(p1, p2, col.multV0M(), Option.SameSpecies.value, myEP, myqnBin);
-        }         
+        }
       }
     }
   }
@@ -798,7 +798,8 @@ struct femtoDreamPairTaskTrackTrack {
         continue;
       }
 
-      auto myEP = TMath::DegToRad()*collision1.eventPlane();
+      auto myEP = TMath::DegToRad() * collision1.eventPlane();
+      auto myEP_event2 = TMath::DegToRad() * collision2.eventPlane();
 
       for (auto& [p1, p2] : combinations(CombinationsFullIndexPolicy(SliceTrk1, SliceTrk2))) {
         if (Option.CPROn.value) {
@@ -806,10 +807,13 @@ struct femtoDreamPairTaskTrackTrack {
             continue;
           }
         }
-        if (EPCal.do1DFemto){
-          mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation? 0.f : myEP);
+        if (EPCal.do1DFemto) {
+          if (EPCal.doQnSeparation)
+            mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, 0.f);
+          else
+            mixedEventQnCont.setPair_EP_mix<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, myEP, myEP_event2);
         }
-        if (EPCal.do3DFemto){
+        if (EPCal.do3DFemto) {
           mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP);
         }
       }

@@ -338,12 +338,14 @@ class FemtoDreamCollisionSelection
   /// Compute the event plane of an event
   /// \tparam T type of the collision
   /// \param col Collision
+  /// \param nmode EP in which harmonic(default 2nd harmonic)
   /// \return angle of the event plane (rad) of FT0C of the event
   template <typename T>
-  float computeEP(T const& col,int nmode)
+  float computeEP(T const& col, int nmode)
   {
     double EP = ((1. / nmode) * (TMath::ATan2(col.qvecFT0CImVec()[0], col.qvecFT0CReVec()[0])));
-    if (EP < 0) EP += TMath::Pi();
+    if (EP < 0)
+      EP += TMath::Pi();
     // atan2 return in rad -pi/2-pi/2, then make it 0-pi
     return EP;
   }
@@ -415,7 +417,7 @@ class FemtoDreamCollisionSelection
     mHistogramQn->fill(HIST("Event/centFT0CBeforeQn"), centrality);
     mHistogramQn->fill(HIST("Event/centVsqn"), centrality, qn);
     mHistogramQn->fill(HIST("Event/centVsqnVsSpher"), centrality, qn, fSpher);
-    mHistogramQn->fill(HIST("Event/qnBin"), mQnBin+0.f);
+    mHistogramQn->fill(HIST("Event/qnBin"), mQnBin + 0.f);
     mHistogramQn->fill(HIST("Event/psiEP"), psiEP);
   }
 

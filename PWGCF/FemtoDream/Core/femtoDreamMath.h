@@ -16,14 +16,14 @@
 #ifndef PWGCF_FEMTODREAM_CORE_FEMTODREAMMATH_H_
 #define PWGCF_FEMTODREAM_CORE_FEMTODREAMMATH_H_
 
-#include <iostream>
-
-#include "Math/Vector4D.h"
 #include "Math/Boost.h"
+#include "Math/Vector4D.h"
 #include "TLorentzVector.h"
-#include "TVector2.h"
 #include "TMath.h"
+#include "TVector2.h"
 #include <Math/VectorUtil.h>
+
+#include <iostream>
 
 namespace o2::analysis::femtoDream
 {
@@ -182,7 +182,7 @@ class FemtoDreamMath
     const double tM = std::sqrt(tMtSq - tPtSq);
     const double tMt = std::sqrt(tMtSq);
     const double tPt = std::sqrt(tPtSq);
-    
+
     // Boost to LCMS
 
     const double beta_LCMS = tPz / tE;
@@ -252,7 +252,22 @@ class FemtoDreamMath
     phi_pair_onPsi = TMath::Abs(phi_pair_onPsi);
     return phi_pair_onPsi;
   }
-
+  /// Compute the phi angular of a pair according to plane-calibarated second particle 
+   template <typename T1, typename T2>
+  static float getPairPhiEP_mix(const T1& part1, const float mass1, const T2& part2, const float mass2, const float Psi_ep1, const float Psi_ep2)
+  {
+    const ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
+    const ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
+    const float psidiff = Psi_ep2 - Psi_ep1;
+    // rotate phi of part2
+    const float newPhi2 = TVector2::Phi_mpi_pi(vecpart2.Phi() - psidiff);
+    const ROOT::Math::PtEtaPhiMVector vecpart2_calibd(vecpart2.Pt(), vecpart2.Eta(), newPhi2, vecpart2.M());
+    const ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2_calibd;
+    // reCalibrate part2 phi with respect to part1 event plane
+    float phi_pair_onPsi = TVector2::Phi_mpi_pi(trackSum.Phi() - Psi_ep1);
+    phi_pair_onPsi = TMath::Abs(phi_pair_onPsi);
+    return phi_pair_onPsi;
+  }
 };
 
 } // namespace o2::analysis::femtoDream

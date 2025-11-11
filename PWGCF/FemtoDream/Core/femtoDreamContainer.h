@@ -183,7 +183,7 @@ class FemtoDreamContainer
     }
   }
 
-  /// Initialize the histograms for pairs in divided qn bins
+  /// Initialize the histograms for pairs in divided qn or phi-psi bins
   template <typename T>
   void init_base_EP(std::string folderName, std::string femtoObs,
                     T& femtoObsAxis, T& mTAxi4D, T& multPercentileAxis4D, T& epObsAxis, std::string epObs)
@@ -223,22 +223,22 @@ class FemtoDreamContainer
   /// Initialize the histograms for pairs with 3D component in divided qn bins
   template <typename T>
   void init_base_3Dqn(std::string folderName, std::string femtoDKout, std::string femtoDKside, std::string femtoDKlong,
-                    T& femtoDKoutAxis, T& femtoDKsideAxis, T& femtoDKlongAxis, T& mTAxi4D, T& multPercentileAxis4D, T& qnAxis, T& pairPhiAxis)
+                      T& femtoDKoutAxis, T& femtoDKsideAxis, T& femtoDKlongAxis, T& mTAxi4D, T& multPercentileAxis4D, T& qnAxis, T& pairPhiAxis)
   {
     mHistogramRegistry->add((folderName + "/relPair3dRmTMultPercentileQnPairphi").c_str(), ("; " + femtoDKout + femtoDKside + femtoDKlong + "; #it{m}_{T} (GeV/#it{c}); Centrality; qn; #varphi_{pair} - #Psi_{EP}").c_str(), kTHnSparseF, {femtoDKoutAxis, femtoDKsideAxis, femtoDKlongAxis, mTAxi4D, multPercentileAxis4D, qnAxis, pairPhiAxis});
   }
 
   template <typename T>
   void init_3Dqn(HistogramRegistry* registry,
-               T& DKoutBins, T& DKsideBins, T& DKlongBins, T& mTBins4D, T& multPercentileBins4D,
-               bool isMC, ConfigurableAxis qnBins = {"qnBins", {10, 0, 10}, "qn binning"}, ConfigurableAxis pairPhiBins = {"phiBins", {10, 0-0.05, TMath::Pi()+0.05}, "pair phi binning"})
+                 T& DKoutBins, T& DKsideBins, T& DKlongBins, T& mTBins4D, T& multPercentileBins4D,
+                 bool isMC, ConfigurableAxis qnBins = {"qnBins", {10, 0, 10}, "qn binning"}, ConfigurableAxis pairPhiBins = {"phiBins", {10, 0 - 0.05, TMath::Pi() + 0.05}, "pair phi binning"})
   {
     mHistogramRegistry = registry;
 
     std::string femtoObsDKout = "DK_{out} (GeV/#it{c})";
     std::string femtoObsDKside = "DK_{side} (GeV/#it{c})";
     std::string femtoObsDKlong = "DK_{long} (GeV/#it{c})";
-    
+
     framework::AxisSpec DKoutAxis = {DKoutBins, femtoObsDKout};
     framework::AxisSpec DKsideAxis = {DKsideBins, femtoObsDKside};
     framework::AxisSpec DKlongAxis = {DKlongBins, femtoObsDKlong};
@@ -250,12 +250,12 @@ class FemtoDreamContainer
     std::string folderName = static_cast<std::string>(mFolderSuffix[mEventType]) + static_cast<std::string>(o2::aod::femtodreamMCparticle::MCTypeName[o2::aod::femtodreamMCparticle::MCType::kRecon]) + static_cast<std::string>("_3Dqn");
 
     init_base_3Dqn(folderName, femtoObsDKout, femtoObsDKside, femtoObsDKlong,
-                 DKoutAxis, DKsideAxis, DKlongAxis, mTAxis4D, multPercentileAxis4D, qnAxis, pairPhiAxis);
+                   DKoutAxis, DKsideAxis, DKlongAxis, mTAxis4D, multPercentileAxis4D, qnAxis, pairPhiAxis);
 
     if (isMC) {
       folderName = static_cast<std::string>(mFolderSuffix[mEventType]) + static_cast<std::string>(o2::aod::femtodreamMCparticle::MCTypeName[o2::aod::femtodreamMCparticle::MCType::kTruth]) + static_cast<std::string>("_3Dqn");
       init_base_3Dqn(folderName, femtoObsDKout, femtoObsDKside, femtoObsDKlong,
-                   DKoutAxis, DKsideAxis, DKlongAxis, mTAxis4D, multPercentileAxis4D, qnAxis, pairPhiAxis);
+                     DKoutAxis, DKsideAxis, DKlongAxis, mTAxis4D, multPercentileAxis4D, qnAxis, pairPhiAxis);
     }
   }
 
@@ -399,11 +399,11 @@ class FemtoDreamContainer
     }
   }
 
-  /// Pass a pair to the container and compute all the relevant observables in divided qn bins
+  /// Pass a pair to the container and compute all the relevant observables in divided qn&phi-psi bins
   template <o2::aod::femtodreamMCparticle::MCType mc>
   void setPair_EP_base(const float femtoObs, const float mT, const float multPercentile, const float myEPObs)
   {
-      mHistogramRegistry->fill(HIST(mFolderSuffix[mEventType]) + HIST(o2::aod::femtodreamMCparticle::MCTypeName[mc]) + HIST("_EP") + HIST("/relPairkstarmTMultMultPercentileQn"), femtoObs, mT, multPercentile, myEPObs);
+    mHistogramRegistry->fill(HIST(mFolderSuffix[mEventType]) + HIST(o2::aod::femtodreamMCparticle::MCTypeName[mc]) + HIST("_EP") + HIST("/relPairkstarmTMultMultPercentileQn"), femtoObs, mT, multPercentile, myEPObs);
   }
 
   template <bool isMC, typename T1, typename T2>
@@ -421,7 +421,7 @@ class FemtoDreamContainer
     }
     const float mT = FemtoDreamMath::getmT(part1, mMassOne, part2, mMassTwo);
 
-    if (!doQnSeparation){
+    if (!doQnSeparation) {
       myEPObs = FemtoDreamMath::getPairPhiEP(part1, mMassOne, part2, mMassTwo, myEPObs);
     }
 
@@ -449,11 +449,55 @@ class FemtoDreamContainer
     }
   }
 
+  // while doing mixing for EP, we have to compute the phi angular of a pair according to plane-calibarated second particle
+  template <bool isMC, typename T1, typename T2>
+  void setPair_EP_mix(T1 const& part1, T2 const& part2, const float multPercentile, const bool doQnSeparation, float EP1, float EP2)
+  {
+    float femtoObs, femtoObsMC;
+    // Calculate femto observable and the mT with reconstructed information
+    if constexpr (mFemtoObs == femtoDreamContainer::Observable::kstar) {
+      femtoObs = FemtoDreamMath::getkstar(part1, mMassOne, part2, mMassTwo);
+    }
+    if (mHighkstarCut > 0) {
+      if (femtoObs > mHighkstarCut) {
+        return;
+      }
+    }
+    const float mT = FemtoDreamMath::getmT(part1, mMassOne, part2, mMassTwo);
+
+    if (doQnSeparation)
+      LOG(fatal) << "Wrong usage of setPair_EP_mix, this is only for phi-psi mixing";
+    EP1 = FemtoDreamMath::getPairPhiEP_mix(part1, mMassOne, part2, mMassTwo, EP1, EP2);
+
+    if (mHistogramRegistry) {
+      setPair_EP_base<o2::aod::femtodreamMCparticle::MCType::kRecon>(femtoObs, mT, multPercentile, EP1);
+
+      if constexpr (isMC) {
+        if (part1.has_fdMCParticle() && part2.has_fdMCParticle()) {
+          // calculate the femto observable and the mT with MC truth information
+          if constexpr (mFemtoObs == femtoDreamContainer::Observable::kstar) {
+            femtoObsMC = FemtoDreamMath::getkstar(part1.fdMCParticle(), mMassOne, part2.fdMCParticle(), mMassTwo);
+          }
+          const float mTMC = FemtoDreamMath::getmT(part1.fdMCParticle(), mMassOne, part2.fdMCParticle(), mMassTwo);
+
+          if (abs(part1.fdMCParticle().pdgMCTruth()) == mPDGOne && abs(part2.fdMCParticle().pdgMCTruth()) == mPDGTwo) { // Note: all pair-histogramms are filled with MC truth information ONLY in case of non-fake candidates
+            setPair_EP_base<o2::aod::femtodreamMCparticle::MCType::kTruth>(femtoObsMC, mTMC, multPercentile, EP1);
+          } else {
+            mHistogramRegistry->fill(HIST(mFolderSuffix[mEventType]) + HIST(o2::aod::femtodreamMCparticle::MCTypeName[o2::aod::femtodreamMCparticle::MCType::kTruth]) + HIST("/hFakePairsCounter"), 0);
+          }
+
+        } else {
+          mHistogramRegistry->fill(HIST(mFolderSuffix[mEventType]) + HIST(o2::aod::femtodreamMCparticle::MCTypeName[o2::aod::femtodreamMCparticle::MCType::kTruth]) + HIST("/hNoMCtruthPairsCounter"), 0);
+        }
+      }
+    }
+  }
+
   /// Pass a pair to the container and compute all the relevant observables in divided qn bins
   template <o2::aod::femtodreamMCparticle::MCType mc>
   void setPair_3Dqn_base(const float femtoDKout, const float femtoDKside, const float femtoDKlong, const float mT, const float multPercentile, const float myQnBin, const float pairPhiEP)
   {
-      mHistogramRegistry->fill(HIST(mFolderSuffix[mEventType]) + HIST(o2::aod::femtodreamMCparticle::MCTypeName[mc]) + HIST("_3Dqn") + HIST("/relPair3dRmTMultPercentileQnPairphi"), femtoDKout, femtoDKside, femtoDKlong, mT, multPercentile, myQnBin, pairPhiEP);
+    mHistogramRegistry->fill(HIST(mFolderSuffix[mEventType]) + HIST(o2::aod::femtodreamMCparticle::MCTypeName[mc]) + HIST("_3Dqn") + HIST("/relPair3dRmTMultPercentileQnPairphi"), femtoDKout, femtoDKside, femtoDKlong, mT, multPercentile, myQnBin, pairPhiEP);
   }
 
   template <bool isMC, typename T1, typename T2>
@@ -466,7 +510,7 @@ class FemtoDreamContainer
     float DKlong = k3d[3];
 
     const float mT = FemtoDreamMath::getmT(part1, mMassOne, part2, mMassTwo);
-    
+
     const float pairPhiEP = FemtoDreamMath::getPairPhiEP(part1, mMassOne, part2, mMassTwo, eventPlane);
 
     if (mHistogramRegistry) {
