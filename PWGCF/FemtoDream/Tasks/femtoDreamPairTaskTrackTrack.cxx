@@ -308,10 +308,10 @@ struct femtoDreamPairTaskTrackTrack {
 
     if (EPCal.do1DFemto) {
       sameEventQnCont.init_EP(&Registry,
-                              Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile, EPCal.doQnSeparation ? EPCal.qnBins : EPCal.pairPhiBins, EPCal.doQnSeparation ? "qnBin" : "#phi_{pair}-#Psi_{EP}",
+                              Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile, EPCal.doQnSeparation ? EPCal.qnBins : EPCal.pairPhiBins, EPCal.doQnSeparation ? "qnBin" : "#phi_{pair}-#Psi_{EP} (rad)",
                               Option.IsMC, Option.HighkstarCut);
       mixedEventQnCont.init_EP(&Registry,
-                               Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile, EPCal.doQnSeparation ? EPCal.qnBins : EPCal.pairPhiBins, EPCal.doQnSeparation ? "qnBin" : "#phi_{pair}-#Psi_{EP}",
+                               Binning4D.kstar, Binning4D.mT, Binning4D.multPercentile, EPCal.doQnSeparation ? EPCal.qnBins : EPCal.pairPhiBins, EPCal.doQnSeparation ? "qnBin" : "#phi_{pair}-#Psi_{EP} (rad)",
                                Option.IsMC, Option.HighkstarCut);
       sameEventQnCont.setPDGCodes(Track1.PDGCode, Track2.PDGCode);
       mixedEventQnCont.setPDGCodes(Track1.PDGCode, Track2.PDGCode);

@@ -278,6 +278,7 @@ struct femtoDreamProducerTask {
     std::string prefix = std::string("epCal");
     Configurable<bool> ConfFillFlowQA{"ConfFillFlowQA", false, "Evt sel: fill flow/event-plane related observables"};
     Configurable<bool> ConfQnSeparation{"ConfQnSeparation", false, "Evt sel: do qn separation of events"};
+    Configurable<int> ConfHarmonicOrder{"ConfHarmonicOrder", 2, "harmonic order for event plane calculation"};
     Configurable<std::vector<float>> ConfQnBinSeparator{"ConfQnBinSeparator", std::vector<float>{-999.f, -999.f, -999.f}, "qn bin separator"};
     Configurable<bool> ConfDoCumlant{"ConfDoCumlant", false, "do cumulant for flow calculation"};
     Configurable<float> ConfCentralityMax{"ConfCentralityMax", 100.f, "Evt sel: Maximum Centrality cut"};
@@ -782,7 +783,7 @@ struct femtoDreamProducerTask {
     }
 
     if constexpr (doFlow) {
-      fillCollisionsFlow(col, tracks, mult, spher, multNtr);
+      fillCollisionsFlow(col, tracks, mult, spher, multNtr, epCal.ConfHarmonicOrder);
     }
 
     std::vector<int> childIDs = {0, 0};           // these IDs are necessary to keep track of the children
@@ -1134,10 +1135,10 @@ struct femtoDreamProducerTask {
   }
 
   template <typename CollisionType, typename TrackType>
-  void fillCollisionsFlow(CollisionType const& col, TrackType const& tracks, float mult, float spher, float multNtr)
+  void fillCollisionsFlow(CollisionType const& col, TrackType const& tracks, float mult, float spher, float multNtr, int EPHarmonic)
   {
     float myqn = colCuts.computeqnVec(col);
-    float myEP = TMath::RadToDeg() * colCuts.computeEP(col, 2);
+    float myEP = TMath::RadToDeg() * colCuts.computeEP(col, EPHarmonic);
     // psi from rad(0-pi) to deg, in table psi would be in deg,from 0-180
 
     if ((myqn >= 0 && myqn < 1e6) || (myEP >= 0 && myEP < 180)) {

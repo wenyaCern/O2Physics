@@ -245,7 +245,7 @@ class FemtoDreamContainer
     framework::AxisSpec mTAxis4D = {mTBins4D, "#it{m}_{T} (GeV/#it{c})"};
     framework::AxisSpec multPercentileAxis4D = {multPercentileBins4D, "Centralty(%)"};
     framework::AxisSpec qnAxis = {qnBins, "qn"};
-    framework::AxisSpec pairPhiAxis = {pairPhiBins, "#varphi_{pair} - #Psi_{EP}"};
+    framework::AxisSpec pairPhiAxis = {pairPhiBins, "#varphi_{pair} - #Psi_{EP} (rad)"};
 
     std::string folderName = static_cast<std::string>(mFolderSuffix[mEventType]) + static_cast<std::string>(o2::aod::femtodreamMCparticle::MCTypeName[o2::aod::femtodreamMCparticle::MCType::kRecon]) + static_cast<std::string>("_3Dqn");
 
