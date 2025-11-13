@@ -24,6 +24,7 @@
 #include <Math/VectorUtil.h>
 
 #include <iostream>
+#include <vector>
 
 namespace o2::analysis::femtoDream
 {
