@@ -808,8 +808,7 @@ struct femtoDreamPairTaskTrackTrack {
             continue;
           }
         }
-        if (EPCal.doEPReClibForMixing)
-        {
+        if (EPCal.doEPReClibForMixing) {
           if (EPCal.do1DFemto) {
             if (EPCal.doQnSeparation)
               mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, 0.f);
@@ -819,10 +818,9 @@ struct femtoDreamPairTaskTrackTrack {
           if (EPCal.do3DFemto) {
             mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP_event1, myEP_event2);
           }
-        }
-        else
-        {
-          if (EPCal.do1DFemto) mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation? 0.f : myEP_event1);
+        } else {
+          if (EPCal.do1DFemto)
+            mixedEventQnCont.setPair_EP<isMC>(p1, p2, collision1.multV0M(), EPCal.doQnSeparation, EPCal.doQnSeparation ? 0.f : myEP_event1);
           if (EPCal.do3DFemto) {
             mixedEventQnCont.setPair_3Dqn<isMC>(p1, p2, collision1.multV0M(), Option.SameSpecies.value, 0.f, myEP_event1);
           }
