@@ -29,6 +29,3 @@ xcuserdata/
 
 #QtCreator
 CMakeLists.txt.user
-
-# LSP
-.clangd
