@@ -26,6 +26,7 @@
 #include <Framework/AnalysisHelpers.h>
 #include <Framework/Configurable.h>
 #include <Framework/InitContext.h>
+#include <Framework/Logger.h>
 #include <Framework/runDataProcessing.h>
 
 #include <fastjet/JetDefinition.hh>
@@ -73,7 +74,9 @@ struct RhoEstimatorTask {
     Configurable<float> trackEtaMax{"trackEtaMax", 0.9, "maximum track eta"};
     Configurable<float> trackPhiMin{"trackPhiMin", -99.0, "minimum track phi"};
     Configurable<float> trackPhiMax{"trackPhiMax", 99.0, "maximum track phi"};
-    Configurable<double> trackingEfficiency{"trackingEfficiency", 1.0, "tracking efficiency applied to jet finding"};
+    Configurable<bool> applyTrackingEfficiency{"applyTrackingEfficiency", {false}, "configurable to decide whether to apply artificial tracking efficiency (discarding tracks) in the collision analysed by this task"};
+    Configurable<std::vector<double>> trackingEfficiencyPtBinning{"trackingEfficiencyPtBinning", {0., 10, 999.}, "pt binning of tracking efficiency array if applyTrackingEfficiency is true"};
+    Configurable<std::vector<double>> trackingEfficiency{"trackingEfficiency", {1.0, 1.0}, "tracking efficiency array applied if applyTrackingEfficiency is true"};
     Configurable<std::string> trackSelections{"trackSelections", "globalTracks", "set track selections"};
 
     Configurable<std::string> particleSelections{"particleSelections", "PhysicalPrimary", "set particle selections"};
@@ -83,9 +86,15 @@ struct RhoEstimatorTask {
     Configurable<float> bkgjetR{"bkgjetR", 0.2, "jet resolution parameter for determining background density"};
     Configurable<float> bkgEtaMin{"bkgEtaMin", -0.7, "minimim pseudorapidity for determining background density"};
     Configurable<float> bkgEtaMax{"bkgEtaMax", 0.7, "maximum pseudorapidity for determining background density"};
-    Configurable<float> bkgPhiMin{"bkgPhiMin", -99., "minimim phi for determining background density"};
-    Configurable<float> bkgPhiMax{"bkgPhiMax", 99., "maximum phi for determining background density"};
+    Configurable<float> bkgPhiMin{"bkgPhiMin", -6.283, "minimim phi for determining background density"};
+    Configurable<float> bkgPhiMax{"bkgPhiMax", 6.283, "maximum phi for determining background density"};
     Configurable<bool> doSparse{"doSparse", false, "perfom sparse estimation"};
+    Configurable<double> ghostRapMax{"ghostRapMax", 0.9, "Ghost rapidity max"};
+    Configurable<int> ghostRepeat{"ghostRepeat", 1, "Ghost tiling repeats"};
+    Configurable<double> ghostArea{"ghostArea", 0.005, "Area per ghost"};
+    Configurable<double> ghostGridScatter{"ghostGridScatter", 1.0, "Grid scatter"};
+    Configurable<double> ghostKtScatter{"ghostKtScatter", 0.1, "kT scatter"};
+    Configurable<double> ghostMeanPt{"ghostMeanPt", 1e-100, "Mean ghost pT"};
 
     Configurable<float> thresholdTriggerTrackPtMin{"thresholdTriggerTrackPtMin", 0.0, "Minimum trigger track pt to accept event"};
     Configurable<float> thresholdClusterEnergyMin{"thresholdClusterEnergyMin", 0.0, "Minimum cluster energy to accept event"};
@@ -131,8 +140,22 @@ struct RhoEstimatorTask {
       bkgPhiMin_ = -2.0 * M_PI;
     }
     bkgSub.setPhiMinMax(bkgPhiMin_, bkgPhiMax_);
+
+    fastjet::GhostedAreaSpec ghostAreaSpec(config.ghostRapMax, config.ghostRepeat, config.ghostArea,
+                                           config.ghostGridScatter, config.ghostKtScatter, config.ghostMeanPt);
+    bkgSub.setGhostAreaSpec(ghostAreaSpec);
+
     eventSelectionBits = jetderiveddatautilities::initialiseEventSelectionBits(static_cast<std::string>(config.eventSelections));
     triggerMaskBits = jetderiveddatautilities::initialiseTriggerMaskBits(config.triggerMasks);
+
+    if (config.applyTrackingEfficiency) {
+      if (config.trackingEfficiencyPtBinning->size() < 2) {
+        LOGP(fatal, "rhoEstimator workflow: trackingEfficiencyPtBinning configurable should have at least two bin edges");
+      }
+      if (config.trackingEfficiency->size() + 1 != config.trackingEfficiencyPtBinning->size()) {
+        LOGP(fatal, "rhoEstimator workflow: trackingEfficiency configurable should have exactly one less entry than the number of bin edges set in trackingEfficiencyPtBinning configurable");
+      }
+    }
   }
 
   Filter trackCuts = (aod::jtrack::pt >= config.trackPtMin && aod::jtrack::pt < config.trackPtMax && aod::jtrack::eta > config.trackEtaMin && aod::jtrack::eta < config.trackEtaMax && aod::jtrack::phi >= config.trackPhiMin && aod::jtrack::phi <= config.trackPhiMax);
@@ -208,7 +231,7 @@ struct RhoEstimatorTask {
       return;
     }
     inputParticles.clear();
-    jetfindingutilities::analyseTracks<soa::Filtered<aod::JetTracks>, soa::Filtered<aod::JetTracks>::iterator>(inputParticles, tracks, trackSelection, config.trackingEfficiency);
+    jetfindingutilities::analyseTracks<soa::Filtered<aod::JetTracks>, soa::Filtered<aod::JetTracks>::iterator>(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning);
     auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
     rhoChargedTable(rho, rhoM);
   }
@@ -221,7 +244,7 @@ struct RhoEstimatorTask {
       return;
     }
     inputParticles.clear();
-    jetfindingutilities::analyseParticles<true, soa::Filtered<aod::JetParticles>, soa::Filtered<aod::JetParticles>::iterator>(inputParticles, particleSelection, 1, particles, pdgDatabase);
+    jetfindingutilities::analyseParticles<false, soa::Filtered<aod::JetParticles>, soa::Filtered<aod::JetParticles>::iterator>(inputParticles, particleSelection, 1, particles, pdgDatabase);
     auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
     rhoChargedMcTable(rho, rhoM);
   }
@@ -235,7 +258,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoD0Table(rho, rhoM);
@@ -263,7 +286,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoDplusTable(rho, rhoM);
@@ -291,7 +314,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoDsTable(rho, rhoM);
@@ -319,7 +342,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoDstarTable(rho, rhoM);
@@ -347,7 +370,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoLcTable(rho, rhoM);
@@ -375,7 +398,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoB0Table(rho, rhoM);
@@ -403,7 +426,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoBplusTable(rho, rhoM);
@@ -431,7 +454,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoXicToXiPiPiTable(rho, rhoM);
@@ -459,7 +482,7 @@ struct RhoEstimatorTask {
         continue;
       }
       inputParticles.clear();
-      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.trackingEfficiency, &candidate);
+      jetfindingutilities::analyseTracks(inputParticles, tracks, trackSelection, config.applyTrackingEfficiency, config.trackingEfficiency, config.trackingEfficiencyPtBinning, &candidate);
 
       auto [rho, rhoM] = bkgSub.estimateRhoAreaMedian(inputParticles, config.doSparse);
       rhoDielectronTable(rho, rhoM);

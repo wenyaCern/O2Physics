@@ -53,7 +53,7 @@ o2physics_add_dpl_workflow(bc-counter
 
 o2physics_add_dpl_workflow(event-qc
                     SOURCES eventQC.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::EventFilteringUtils
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
                     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(single-electron-qc
@@ -171,3 +171,7 @@ o2physics_add_dpl_workflow(study-dcafitter
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DCAFitter O2Physics::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2physics_add_dpl_workflow(evaluate-acceptance
+                    SOURCES evaluateAcceptance.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
+                    COMPONENT_NAME Analysis)

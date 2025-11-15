@@ -21,8 +21,9 @@
 #include "Common/Core/RecoDecay.h"
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/PIDResponse.h"
 #include "Common/DataModel/PIDResponseITS.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
 
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -747,9 +748,7 @@ struct HyperkinkRecoTask {
         if (hypoMoth == kHypertriton) {
           auto dChannel = H3LDecay::getDecayChannel<aod::McParticles>(mcMothTrack, dauIDList);
           if (dChannel == H3LDecay::k2bodyNeutral && dauIDList[0] == mcDaugTrack.globalIndex()) {
-            if (std::hypot(mcDaugTrack.vx(), mcDaugTrack.vy()) > LayerRadii[3]) {
-              isKinkSignal = true;
-            }
+            isKinkSignal = true;
           }
         } else if (hypoMoth == kHyperhelium4sigma) {
           auto dChannel = He4SDecay::getDecayChannel<aod::McParticles>(mcMothTrack, dauIDList);

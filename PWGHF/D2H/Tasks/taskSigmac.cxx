@@ -18,6 +18,7 @@
 #include "PWGHF/Core/DecayChannels.h"
 #include "PWGHF/Core/HfHelper.h"
 #include "PWGHF/D2H/Utils/utilsSigmac.h"
+#include "PWGHF/DataModel/AliasTables.h"
 #include "PWGHF/DataModel/CandidateReconstructionTables.h"
 #include "PWGHF/DataModel/CandidateSelectionTables.h"
 
@@ -64,8 +65,7 @@ struct HfTaskSigmac {
   Configurable<bool> enableTHn{"enableTHn", false, "enable the usage of THn for Λc+ and Σc0,++"};
   Configurable<bool> addSoftPiDcaToSigmacSparse{"addSoftPiDcaToSigmacSparse", false, "enable the filling of sof-pion dcaXY, dcaZ in the Σc0,++ THnSparse"};
 
-  HfHelper hfHelper;
-  bool isMc;
+  bool isMc{};
   static constexpr std::size_t NDaughters{2u};
 
   using RecoLc = soa::Join<aod::HfCand3Prong, aod::HfSelLc>;
@@ -152,11 +152,7 @@ struct HfTaskSigmac {
     }
 
     /// establish if the analysis is done on Data or MC
-    if (doprocessMcWoMl || doprocessMcWithMl) {
-      isMc = true;
-    } else {
-      isMc = false;
-    }
+    isMc = doprocessMcWoMl || doprocessMcWithMl;
 
     const AxisSpec thnAxisMassLambdaC{configAxisMassLambdaC, "inv. mass (p K #pi) (GeV/#it{c}^{2})"};
     const AxisSpec thnAxisPtLambdaC{thnConfigAxisPt, "#it{p}_{T}(#Lambda_{c}^{+}) (GeV/#it{c})"};
@@ -344,7 +340,7 @@ struct HfTaskSigmac {
   /// @brief function to fill the histograms needed in analysis (data)
   /// @param candidatesSc are the reconstructed candidate Σc0,++
   /// @param
-  template <bool useMl, typename CandsLc>
+  template <bool UseMl, typename CandsLc>
   void fillHistosData(aod::HfCandSc const& candidatesSc,
                       CandsLc const& candidatesLc,
                       aod::Tracks const&)
@@ -355,7 +351,7 @@ struct HfTaskSigmac {
 
       /// rapidity selection on Σc0,++
       /// NB: since in data we cannot tag Sc(2455) and Sc(2520), then we use only Sc(2455) for y selection on reconstructed signal
-      if (yCandRecoMax >= 0. && std::abs(hfHelper.ySc0(candSc)) > yCandRecoMax && std::abs(hfHelper.yScPlusPlus(candSc)) > yCandRecoMax) {
+      if (yCandRecoMax >= 0. && std::abs(HfHelper::ySc0(candSc)) > yCandRecoMax && std::abs(HfHelper::yScPlusPlus(candSc)) > yCandRecoMax) {
         continue;
       }
 
@@ -376,8 +372,8 @@ struct HfTaskSigmac {
       double cpaLc(candidateLc.cpa()), cpaXYLc(candidateLc.cpaXY());
       /// candidate Λc+ → pK-π+ (and charge conjugate) within the range of M(pK-π+) chosen in the Σc0,++ builder
       if (TESTBIT(isCandPKPiPiKP, o2::aod::hf_cand_sigmac::Decays::PKPi)) {
-        massSc = hfHelper.invMassScRecoLcToPKPi(candSc, candidateLc);
-        massLc = hfHelper.invMassLcToPKPi(candidateLc);
+        massSc = HfHelper::invMassScRecoLcToPKPi(candSc, candidateLc);
+        massLc = HfHelper::invMassLcToPKPi(candidateLc);
         deltaMass = massSc - massLc;
         /// fill the histograms
         if (chargeSc == o2::aod::hf_cand_sigmac::ChargeNull) {
@@ -433,7 +429,7 @@ struct HfTaskSigmac {
             /// fill it only if no MC operations are enabled, otherwise fill it in the processMC with the right origin and channel!
             const float softPiAbsDcaXY = std::abs(candSc.softPiDcaXY());
             const float softPiAbsDcaZ = std::abs(candSc.softPiDcaZ());
-            if constexpr (useMl) {
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -459,8 +455,8 @@ struct HfTaskSigmac {
       } /// end candidate Λc+ → pK-π+ (and charge conjugate)
       /// candidate Λc+ → π+K-p (and charge conjugate) within the range of M(π+K-p) chosen in the Σc0,++ builder
       if (TESTBIT(isCandPKPiPiKP, o2::aod::hf_cand_sigmac::Decays::PiKP)) {
-        massSc = hfHelper.invMassScRecoLcToPiKP(candSc, candidateLc);
-        massLc = hfHelper.invMassLcToPiKP(candidateLc);
+        massSc = HfHelper::invMassScRecoLcToPiKP(candSc, candidateLc);
+        massLc = HfHelper::invMassLcToPiKP(candidateLc);
         deltaMass = massSc - massLc;
         /// fill the histograms
         if (chargeSc == o2::aod::hf_cand_sigmac::ChargeNull) {
@@ -516,7 +512,7 @@ struct HfTaskSigmac {
             /// fill it only if no MC operations are enabled, otherwise fill it in the processMC with the right origin and channel!
             const float softPiAbsDcaXY = std::abs(candSc.softPiDcaXY());
             const float softPiAbsDcaZ = std::abs(candSc.softPiDcaZ());
-            if constexpr (useMl) {
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -549,12 +545,12 @@ struct HfTaskSigmac {
         /// loop over Λc+ candidates w/o Σc0,++ mass-window cut
         for (const auto& candidateLc : candidatesLc) {
           double massLc(-1.);
-          double ptLc(candidateLc.pt());
+          double const ptLc(candidateLc.pt());
           double decLengthLc(candidateLc.decayLength()), decLengthXYLc(candidateLc.decayLengthXY());
           double cpaLc(candidateLc.cpa()), cpaXYLc(candidateLc.cpaXY());
           if (candidateLc.isSelLcToPKPi() >= 1) {
-            massLc = hfHelper.invMassLcToPKPi(candidateLc);
-            if constexpr (useMl) {
+            massLc = HfHelper::invMassLcToPKPi(candidateLc);
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -569,8 +565,8 @@ struct HfTaskSigmac {
             }
           }
           if (candidateLc.isSelLcToPiKP() >= 1) {
-            massLc = hfHelper.invMassLcToPiKP(candidateLc);
-            if constexpr (useMl) {
+            massLc = HfHelper::invMassLcToPiKP(candidateLc);
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -593,7 +589,7 @@ struct HfTaskSigmac {
   /// @param candidatesSc are the reconstructed candidate Σc0,++ with MC info
   /// @param mcParticles are the generated particles with flags wheter they are Σc0,++ or not
   /// @param
-  template <bool useMl, typename CandsLc>
+  template <bool UseMl, typename CandsLc>
   void fillHistosMc(soa::Join<aod::HfCandSc, aod::HfCandScMcRec> const& candidatesSc,
                     soa::Join<aod::McParticles, aod::HfCandScMcGen> const& mcParticlesSc,
                     soa::Join<aod::McParticles, aod::HfCand3ProngMcGen> const& mcParticlesLc,
@@ -606,12 +602,13 @@ struct HfTaskSigmac {
     for (const auto& particle : mcParticlesSc) {
 
       /// reject immediately particles different from Σc0,++
-      bool isSc0Gen = (std::abs(particle.flagMcMatchGen()) == BIT(aod::hf_cand_sigmac::DecayType::Sc0ToPKPiPi));
-      bool isScStar0Gen = (std::abs(particle.flagMcMatchGen()) == BIT(aod::hf_cand_sigmac::DecayType::ScStar0ToPKPiPi));
-      bool isScPlusPlusGen = (std::abs(particle.flagMcMatchGen()) == BIT(aod::hf_cand_sigmac::DecayType::ScplusplusToPKPiPi));
-      bool isScStarPlusPlusGen = (std::abs(particle.flagMcMatchGen()) == BIT(aod::hf_cand_sigmac::DecayType::ScStarPlusPlusToPKPiPi));
-      if (!isSc0Gen && !isScPlusPlusGen && !isScStar0Gen && !isScStarPlusPlusGen)
+      bool const isSc0Gen = (std::abs(particle.flagMcMatchGen()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::Sc0ToPKPiPi);
+      bool const isScStar0Gen = (std::abs(particle.flagMcMatchGen()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::ScStar0ToPKPiPi);
+      bool const isScPlusPlusGen = (std::abs(particle.flagMcMatchGen()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::ScplusplusToPKPiPi);
+      bool const isScStarPlusPlusGen = (std::abs(particle.flagMcMatchGen()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::ScStarPlusPlusToPKPiPi);
+      if (!isSc0Gen && !isScPlusPlusGen && !isScStar0Gen && !isScStarPlusPlusGen) {
         continue;
+      }
 
       /// look for generated particles in acceptance
       /*
@@ -711,7 +708,7 @@ struct HfTaskSigmac {
         registry.fill(HIST("MC/generated/hPtGenLcFromSc0PlusPlusSig"), ptGenLc, origin, channel);
         registry.fill(HIST("MC/generated/hEtaGenLcFromSc0PlusPlusSig"), etaGenLc, origin, channel);
         registry.fill(HIST("MC/generated/hPhiGenLcFromSc0PlusPlusSig"), phiGenLc, origin, channel); /// Generated Λc+ ← Σc0,++ signal
-        int8_t particleAntiparticle = particle.particleAntiparticle();
+        int8_t const particleAntiparticle = particle.particleAntiparticle();
         if (origin == RecoDecay::OriginType::Prompt) {
           registry.fill(HIST("MC/generated/hnSigmaCGen"), ptGenSc, ptGenScBMother, origin, channel, ptGenLc, 0, sigmacSpecies, particleAntiparticle);
         } else {
@@ -746,7 +743,7 @@ struct HfTaskSigmac {
         registry.fill(HIST("MC/generated/hPtGenLcFromSc0PlusPlusSig"), ptGenLc, origin, channel);
         registry.fill(HIST("MC/generated/hEtaGenLcFromSc0PlusPlusSig"), etaGenLc, origin, channel);
         registry.fill(HIST("MC/generated/hPhiGenLcFromSc0PlusPlusSig"), phiGenLc, origin, channel); /// Generated Λc+ ← Σc0,++ signal
-        int8_t particleAntiparticle = particle.particleAntiparticle();
+        int8_t const particleAntiparticle = particle.particleAntiparticle();
         if (origin == RecoDecay::OriginType::Prompt) {
           registry.fill(HIST("MC/generated/hnSigmaCGen"), ptGenSc, ptGenScBMother, origin, channel, ptGenLc, 2, sigmacSpecies, particleAntiparticle);
         } else {
@@ -772,8 +769,8 @@ struct HfTaskSigmac {
         continue;
       }
       double ptGenLc(particle.pt()), ptGenLcBMother(-1.);
-      int origin = particle.originMcGen();
-      int channel = particle.flagMcDecayChanGen();
+      int const origin = particle.originMcGen();
+      int const channel = particle.flagMcDecayChanGen();
       if (origin == RecoDecay::OriginType::Prompt) {
         registry.fill(HIST("MC/generated/hnLambdaCGen"), ptGenLc, ptGenLcBMother, origin, channel);
       } else {
@@ -787,7 +784,7 @@ struct HfTaskSigmac {
 
       /// rapidity selection on Σc0,++
       /// NB: since in data we cannot tag Sc(2455) and Sc(2520), then we use only Sc(2455) for y selection on reconstructed signal
-      if (yCandRecoMax >= 0. && std::abs(hfHelper.ySc0(candSc)) > yCandRecoMax && std::abs(hfHelper.yScPlusPlus(candSc)) > yCandRecoMax) {
+      if (yCandRecoMax >= 0. && std::abs(HfHelper::ySc0(candSc)) > yCandRecoMax && std::abs(HfHelper::yScPlusPlus(candSc)) > yCandRecoMax) {
         continue;
       }
 
@@ -801,10 +798,10 @@ struct HfTaskSigmac {
 
       // candidateLc.flagMcDecayChanRec();
 
-      bool isTrueSc0Reco = std::abs(candSc.flagMcMatchRec()) == BIT(aod::hf_cand_sigmac::DecayType::Sc0ToPKPiPi);
-      bool isTrueScStar0Reco = std::abs(candSc.flagMcMatchRec()) == BIT(aod::hf_cand_sigmac::DecayType::ScStar0ToPKPiPi);
-      bool isTrueScPlusPlusReco = std::abs(candSc.flagMcMatchRec()) == BIT(aod::hf_cand_sigmac::DecayType::ScplusplusToPKPiPi);
-      bool isTrueScStarPlusPlusReco = std::abs(candSc.flagMcMatchRec()) == BIT(aod::hf_cand_sigmac::DecayType::ScStarPlusPlusToPKPiPi);
+      bool const isTrueSc0Reco = std::abs(candSc.flagMcMatchRec()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::Sc0ToPKPiPi;
+      bool const isTrueScStar0Reco = std::abs(candSc.flagMcMatchRec()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::ScStar0ToPKPiPi;
+      bool const isTrueScPlusPlusReco = std::abs(candSc.flagMcMatchRec()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::ScplusplusToPKPiPi;
+      bool const isTrueScStarPlusPlusReco = std::abs(candSc.flagMcMatchRec()) == o2::hf_decay::hf_cand_sigmac::DecayChannelMain::ScStarPlusPlusToPKPiPi;
       int sigmacSpecies = -1;
       if ((isTrueSc0Reco || isTrueScStar0Reco) && (chargeSc == o2::aod::hf_cand_sigmac::ChargeNull)) {
         /// Reconstructed Σc0 signal
@@ -823,7 +820,7 @@ struct HfTaskSigmac {
         // Get the corresponding MC particle for Lc
         auto arrayDaughtersLc = std::array{candidateLc.template prong0_as<aod::TracksWMc>(), candidateLc.template prong1_as<aod::TracksWMc>(), candidateLc.template prong2_as<aod::TracksWMc>()};
         int8_t sign = 0;
-        int indexMcLcRec = RecoDecay::getMatchedMCRec(mcParticles, arrayDaughtersLc, o2::constants::physics::Pdg::kLambdaCPlus, std::array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
+        int const indexMcLcRec = RecoDecay::getMatchedMCRec(mcParticles, arrayDaughtersLc, o2::constants::physics::Pdg::kLambdaCPlus, std::array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
         auto particleLc = mcParticles.rawIteratorAt(indexMcLcRec);
         // Get the corresponding MC particle for soft pion
         auto particleSoftPi = candSc.prong1_as<aod::TracksWMc>().mcParticle();
@@ -838,13 +835,13 @@ struct HfTaskSigmac {
         double ptGenSc(particleSc.pt()), ptGenLc(particleLc.pt()), ptGenSoftPi(particleSoftPi.pt());
         double decLengthLc(candidateLc.decayLength()), decLengthXYLc(candidateLc.decayLengthXY());
         double cpaLc(candidateLc.cpa()), cpaXYLc(candidateLc.cpaXY());
-        int origin = candSc.originMcRec();
+        int const origin = candSc.originMcRec();
         auto channel = candidateLc.flagMcDecayChanRec(); /// 0: direct; 1: Λc± → p± K*; 2: Λc± → Δ(1232)±± K∓; 3: Λc± → Λ(1520) π±
 
         /// candidate Λc+ → pK-π+ (and charge conjugate) within the range of M(pK-π+) chosen in the Σc0,++ builder
         if ((TESTBIT(isCandPKPiPiKP, o2::aod::hf_cand_sigmac::Decays::PKPi)) && std::abs(candidateLc.template prong0_as<aod::TracksWMc>().mcParticle().pdgCode()) == kProton) {
-          massSc = hfHelper.invMassScRecoLcToPKPi(candSc, candidateLc);
-          massLc = hfHelper.invMassLcToPKPi(candidateLc);
+          massSc = HfHelper::invMassScRecoLcToPKPi(candSc, candidateLc);
+          massLc = HfHelper::invMassLcToPKPi(candidateLc);
           deltaMass = massSc - massLc;
 
           /// Fill the histograms for reconstructed Σc0 signal
@@ -899,10 +896,10 @@ struct HfTaskSigmac {
 
           /// THn for candidate Σc0,++ cut variation
           if (enableTHn) {
-            int8_t particleAntiparticle = candSc.particleAntiparticle();
+            int8_t const particleAntiparticle = candSc.particleAntiparticle();
             const float softPiAbsDcaXY = std::abs(candSc.softPiDcaXY());
             const float softPiAbsDcaZ = std::abs(candSc.softPiDcaZ());
-            if constexpr (useMl) {
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -928,8 +925,8 @@ struct HfTaskSigmac {
         } /// end candidate Λc+ → pK-π+ (and charge conjugate)
         /// candidate Λc+ → π+K-p (and charge conjugate) within the range of M(π+K-p) chosen in the Σc0,++ builder
         if ((TESTBIT(isCandPKPiPiKP, o2::aod::hf_cand_sigmac::Decays::PiKP)) && std::abs(candidateLc.template prong0_as<aod::TracksWMc>().mcParticle().pdgCode()) == kPiPlus) {
-          massSc = hfHelper.invMassScRecoLcToPiKP(candSc, candidateLc);
-          massLc = hfHelper.invMassLcToPiKP(candidateLc);
+          massSc = HfHelper::invMassScRecoLcToPiKP(candSc, candidateLc);
+          massLc = HfHelper::invMassLcToPiKP(candidateLc);
           deltaMass = massSc - massLc;
 
           /// Fill the histograms for reconstructed Σc0 signal
@@ -984,10 +981,10 @@ struct HfTaskSigmac {
 
           /// THn for candidate Σc0,++ cut variation
           if (enableTHn) {
-            int8_t particleAntiparticle = candSc.particleAntiparticle();
+            int8_t const particleAntiparticle = candSc.particleAntiparticle();
             const float softPiAbsDcaXY = std::abs(candSc.softPiDcaXY());
             const float softPiAbsDcaZ = std::abs(candSc.softPiDcaZ());
-            if constexpr (useMl) {
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -1029,7 +1026,7 @@ struct HfTaskSigmac {
         // Get the corresponding MC particle for Lc
         auto arrayDaughtersLc = std::array{candidateLc.template prong0_as<aod::TracksWMc>(), candidateLc.template prong1_as<aod::TracksWMc>(), candidateLc.template prong2_as<aod::TracksWMc>()};
         int8_t sign = 0;
-        int indexMcLcRec = RecoDecay::getMatchedMCRec(mcParticles, arrayDaughtersLc, o2::constants::physics::Pdg::kLambdaCPlus, std::array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
+        int const indexMcLcRec = RecoDecay::getMatchedMCRec(mcParticles, arrayDaughtersLc, o2::constants::physics::Pdg::kLambdaCPlus, std::array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
         auto particleLc = mcParticles.rawIteratorAt(indexMcLcRec);
         // Get the corresponding MC particle for soft pion
         auto particleSoftPi = candSc.prong1_as<aod::TracksWMc>().mcParticle();
@@ -1044,13 +1041,13 @@ struct HfTaskSigmac {
         double ptGenSc(particleSc.pt()), ptGenLc(particleLc.pt()), ptGenSoftPi(particleSoftPi.pt());
         double decLengthLc(candidateLc.decayLength()), decLengthXYLc(candidateLc.decayLengthXY());
         double cpaLc(candidateLc.cpa()), cpaXYLc(candidateLc.cpaXY());
-        int origin = candSc.originMcRec();
+        int const origin = candSc.originMcRec();
         auto channel = candidateLc.flagMcDecayChanRec(); /// 0: direct; 1: Λc± → p± K*; 2: Λc± → Δ(1232)±± K∓; 3: Λc± → Λ(1520) π±; FIXME: DecayChannelResonant
 
         /// candidate Λc+ → pK-π+ (and charge conjugate) within the range of M(pK-π+) chosen in the Σc0,++ builder
         if ((TESTBIT(isCandPKPiPiKP, o2::aod::hf_cand_sigmac::Decays::PKPi)) && std::abs(candidateLc.template prong0_as<aod::TracksWMc>().mcParticle().pdgCode()) == kProton) {
-          massSc = hfHelper.invMassScRecoLcToPKPi(candSc, candidateLc);
-          massLc = hfHelper.invMassLcToPKPi(candidateLc);
+          massSc = HfHelper::invMassScRecoLcToPKPi(candSc, candidateLc);
+          massLc = HfHelper::invMassLcToPKPi(candidateLc);
           deltaMass = massSc - massLc;
 
           /// Fill the histograms for reconstructed Σc++ signal
@@ -1105,10 +1102,10 @@ struct HfTaskSigmac {
 
           /// THn for candidate Σc0,++ cut variation
           if (enableTHn) {
-            int8_t particleAntiparticle = candSc.particleAntiparticle();
+            int8_t const particleAntiparticle = candSc.particleAntiparticle();
             const float softPiAbsDcaXY = std::abs(candSc.softPiDcaXY());
             const float softPiAbsDcaZ = std::abs(candSc.softPiDcaZ());
-            if constexpr (useMl) {
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -1134,8 +1131,8 @@ struct HfTaskSigmac {
         } /// end candidate Λc+ → pK-π+ (and charge conjugate)
         /// candidate Λc+ → π+K-p (and charge conjugate) within the range of M(π+K-p) chosen in the Σc0,++ builder
         if ((TESTBIT(isCandPKPiPiKP, o2::aod::hf_cand_sigmac::Decays::PiKP)) && std::abs(candidateLc.template prong0_as<aod::TracksWMc>().mcParticle().pdgCode()) == kPiPlus) {
-          massSc = hfHelper.invMassScRecoLcToPiKP(candSc, candidateLc);
-          massLc = hfHelper.invMassLcToPiKP(candidateLc);
+          massSc = HfHelper::invMassScRecoLcToPiKP(candSc, candidateLc);
+          massLc = HfHelper::invMassLcToPiKP(candidateLc);
           deltaMass = massSc - massLc;
 
           /// Fill the histograms for reconstructed Σc++ signal
@@ -1188,10 +1185,10 @@ struct HfTaskSigmac {
 
           /// THn for candidate Σc0,++ cut variation
           if (enableTHn) {
-            int8_t particleAntiparticle = candSc.particleAntiparticle();
+            int8_t const particleAntiparticle = candSc.particleAntiparticle();
             const float softPiAbsDcaXY = std::abs(candSc.softPiDcaXY());
             const float softPiAbsDcaZ = std::abs(candSc.softPiDcaZ());
-            if constexpr (useMl) {
+            if constexpr (UseMl) {
               /// fill with ML information
               /// BDT index 0: bkg score; BDT index 2: non-prompt score
               std::array<float, 2> outputMl{-1., -1.};
@@ -1227,18 +1224,18 @@ struct HfTaskSigmac {
           continue;
         }
         double massLc(-1.);
-        double ptLc(candidateLc.pt());
+        double const ptLc(candidateLc.pt());
         double decLengthLc(candidateLc.decayLength()), decLengthXYLc(candidateLc.decayLengthXY());
         double cpaLc(candidateLc.cpa()), cpaXYLc(candidateLc.cpaXY());
-        int origin = candidateLc.originMcRec();
+        int const origin = candidateLc.originMcRec();
         auto channel = candidateLc.flagMcDecayChanRec(); /// 0: direct; 1: Λc± → p± K*; 2: Λc± → Δ(1232)±± K∓; 3: Λc± → Λ(1520) π±
         int pdgAbs = -1;
         if (candidateLc.template prong0_as<aod::TracksWMc>().has_mcParticle()) {
           pdgAbs = std::abs(candidateLc.template prong0_as<aod::TracksWMc>().mcParticle().pdgCode());
         }
         if (candidateLc.isSelLcToPKPi() >= 1 && pdgAbs == kProton) {
-          massLc = hfHelper.invMassLcToPKPi(candidateLc);
-          if constexpr (useMl) {
+          massLc = HfHelper::invMassLcToPKPi(candidateLc);
+          if constexpr (UseMl) {
             /// fill with ML information
             /// BDT index 0: bkg score; BDT index 2: non-prompt score
             std::array<float, 2> outputMl{-1., -1.};
@@ -1253,8 +1250,8 @@ struct HfTaskSigmac {
           }
         }
         if (candidateLc.isSelLcToPiKP() >= 1 && pdgAbs == kPiPlus) {
-          massLc = hfHelper.invMassLcToPiKP(candidateLc);
-          if constexpr (useMl) {
+          massLc = HfHelper::invMassLcToPiKP(candidateLc);
+          if constexpr (UseMl) {
             /// fill with ML information
             /// BDT index 0: bkg score; BDT index 2: non-prompt score
             std::array<float, 2> outputMl{-1., -1.};

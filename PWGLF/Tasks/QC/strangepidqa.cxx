@@ -12,32 +12,35 @@
 // This task is designed to do QA to the TOF PID applied to strangeness
 // in the regular framework
 
-#include "Framework/runDataProcessing.h"
-#include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoAHelpers.h"
-#include "ReconstructionDataFormats/Track.h"
-#include "Common/Core/RecoDecay.h"
-#include "Common/Core/trackUtilities.h"
-#include "PWGLF/DataModel/LFStrangenessTables.h"
 #include "PWGLF/DataModel/LFStrangenessPIDTables.h"
-#include "Common/Core/TrackSelection.h"
-#include "Common/DataModel/TrackSelectionTables.h"
-#include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/Centrality.h"
-#include "Common/DataModel/PIDResponse.h"
+#include "PWGLF/DataModel/LFStrangenessTables.h"
 
+#include "Common/Core/RecoDecay.h"
+#include "Common/Core/TrackSelection.h"
+#include "Common/Core/trackUtilities.h"
+#include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
+#include "Common/DataModel/TrackSelectionTables.h"
+
+#include "Framework/ASoAHelpers.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/runDataProcessing.h"
+#include "ReconstructionDataFormats/Track.h"
+
+#include <Math/Vector4D.h>
+#include <TDatabasePDG.h>
 #include <TFile.h>
 #include <TH2F.h>
-#include <TProfile.h>
 #include <TLorentzVector.h>
-#include <Math/Vector4D.h>
 #include <TPDGCode.h>
-#include <TDatabasePDG.h>
-#include <cmath>
+#include <TProfile.h>
+
 #include <array>
+#include <cmath>
 #include <cstdlib>
-#include "Framework/ASoAHelpers.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -164,7 +167,7 @@ struct strangepidqa {
 
   void processReal(soa::Join<aod::StraCollisions, aod::StraCents>::iterator const& coll, soa::Join<aod::V0Cores, aod::V0CollRefs, aod::V0Extras, aod::V0TOFPIDs, aod::V0TOFBetas, aod::V0TOFDebugs, aod::V0TOFNSigmas> const& v0s, soa::Join<aod::DauTrackExtras, aod::DauTrackTPCPIDs> const&)
   {
-    for (auto& lambda : v0s) { // selecting photons from Sigma0
+    for (auto& lambda : v0s) {
 
       if (TMath::Abs(lambda.eta()) > 0.5)
         continue;
@@ -285,16 +288,16 @@ struct strangepidqa {
       auto posExtra = lambda.posTrack_as<soa::Join<aod::TracksIU, aod::TracksExtra, aod::pidTPCPi, aod::pidTPCKa, aod::pidTPCPr, aod::pidTOFPi, aod::pidTOFKa, aod::pidTOFPr>>();
 
       bool primaryTOFcompatible_Lambda =
-        (!posExtra.hasTOF() || (posExtra.tofNSigmaPr() < tofNsigmaCompatibilityCascades.value)) &&
-        (!negExtra.hasTOF() || (negExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value));
+        (!posExtra.hasTOF() || (std::fabs(posExtra.tofNSigmaPr()) < tofNsigmaCompatibilityCascades.value)) &&
+        (!negExtra.hasTOF() || (std::fabs(negExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value));
 
       bool primaryTOFcompatible_AntiLambda =
-        (!posExtra.hasTOF() || (posExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value)) &&
-        (!negExtra.hasTOF() || (negExtra.tofNSigmaPr() < tofNsigmaCompatibilityCascades.value));
+        (!posExtra.hasTOF() || (std::fabs(posExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value)) &&
+        (!negExtra.hasTOF() || (std::fabs(negExtra.tofNSigmaPr()) < tofNsigmaCompatibilityCascades.value));
 
       bool primaryTOFcompatible_K0Short =
-        (!posExtra.hasTOF() || (posExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value)) &&
-        (!negExtra.hasTOF() || (negExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value));
+        (!posExtra.hasTOF() || (std::fabs(posExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value)) &&
+        (!negExtra.hasTOF() || (std::fabs(negExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value));
 
       if (TMath::Abs(posExtra.tpcNSigmaPr()) < tpcNsigmaProton && TMath::Abs(negExtra.tpcNSigmaPi()) < tpcNsigmaPion) {
         // lambda case
@@ -369,24 +372,24 @@ struct strangepidqa {
         }
 
         bool primaryTOFcompatible_XiMinus =
-          (!posExtra.hasTOF() || (posExtra.tofNSigmaPr() < tofNsigmaCompatibilityCascades.value)) &&
-          (!negExtra.hasTOF() || (negExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value)) &&
-          (!bachExtra.hasTOF() || (bachExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value));
+          (!posExtra.hasTOF() || (std::fabs(posExtra.tofNSigmaPr()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!negExtra.hasTOF() || (std::fabs(negExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!bachExtra.hasTOF() || (std::fabs(bachExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value));
 
         bool primaryTOFcompatible_XiPlus =
-          (!posExtra.hasTOF() || (posExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value)) &&
-          (!negExtra.hasTOF() || (negExtra.tofNSigmaPr() < tofNsigmaCompatibilityCascades.value)) &&
-          (!bachExtra.hasTOF() || (bachExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value));
+          (!posExtra.hasTOF() || (std::fabs(posExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!negExtra.hasTOF() || (std::fabs(negExtra.tofNSigmaPr()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!bachExtra.hasTOF() || (std::fabs(bachExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value));
 
         bool primaryTOFcompatible_OmegaMinus =
-          (!posExtra.hasTOF() || (posExtra.tofNSigmaPr() < tofNsigmaCompatibilityCascades.value)) &&
-          (!negExtra.hasTOF() || (negExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value)) &&
-          (!bachExtra.hasTOF() || (bachExtra.tofNSigmaKa() < tofNsigmaCompatibilityCascades.value));
+          (!posExtra.hasTOF() || (std::fabs(posExtra.tofNSigmaPr()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!negExtra.hasTOF() || (std::fabs(negExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!bachExtra.hasTOF() || (std::fabs(bachExtra.tofNSigmaKa()) < tofNsigmaCompatibilityCascades.value));
 
         bool primaryTOFcompatible_OmegaPlus =
-          (!posExtra.hasTOF() || (posExtra.tofNSigmaPi() < tofNsigmaCompatibilityCascades.value)) &&
-          (!negExtra.hasTOF() || (negExtra.tofNSigmaPr() < tofNsigmaCompatibilityCascades.value)) &&
-          (!bachExtra.hasTOF() || (bachExtra.tofNSigmaKa() < tofNsigmaCompatibilityCascades.value));
+          (!posExtra.hasTOF() || (std::fabs(posExtra.tofNSigmaPi()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!negExtra.hasTOF() || (std::fabs(negExtra.tofNSigmaPr()) < tofNsigmaCompatibilityCascades.value)) &&
+          (!bachExtra.hasTOF() || (std::fabs(bachExtra.tofNSigmaKa()) < tofNsigmaCompatibilityCascades.value));
 
         if (casc.sign() < 0) {
           if (TMath::Abs(posExtra.tpcNSigmaPr()) < tpcNsigmaProton && TMath::Abs(negExtra.tpcNSigmaPi()) < tpcNsigmaPion && TMath::Abs(bachExtra.tpcNSigmaPi()) < tpcNsigmaBachelor) {
