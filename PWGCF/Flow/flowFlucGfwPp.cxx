@@ -1020,14 +1020,14 @@ struct FlowFlucGfwPp {
         registry.fill(HIST("qvecQA/ChTracks"), trk.pt(), trk.eta(), trk.phi());
       }
 
-      if (trk.eta() > 0 && fabs(trk.eta())< cfgQnTrkAbsEtaMax) {
+      if (trk.eta() > 0 && fabs(trk.eta()) < cfgQnTrkAbsEtaMax) {
         // In qVectorsTable this branch is additionally guarded by useDetector["QvectorTPCposs"] || useDetector["QvectorBPoss"].
         // Here TPCpos is always computed because the downstream ESE selector can require it.
         qvec.qVectTPCPos[0] += trk.pt() * std::cos(trk.phi() * nMode);
         qvec.qVectTPCPos[1] += trk.pt() * std::sin(trk.phi() * nMode);
         qvec.trkTPCPosLabel.push_back(trk.globalIndex());
         qvec.nTrkTPCPos++;
-      } else if (trk.eta() < 0 && fabs(trk.eta())< cfgQnTrkAbsEtaMax) {
+      } else if (trk.eta() < 0 && fabs(trk.eta()) < cfgQnTrkAbsEtaMax) {
         // In qVectorsTable this branch is additionally guarded by useDetector["QvectorTPCnegs"] || useDetector["QvectorBNegs"].
         // Here TPCneg is always computed because the downstream ESE selector can require it.
         qvec.qVectTPCNeg[0] += trk.pt() * std::cos(trk.phi() * nMode);
@@ -1565,10 +1565,10 @@ struct FlowFlucGfwPp {
   PROCESS_SWITCH(FlowFlucGfwPp, processq2, "Process analysis for filling q_n-vector calibration histograms", true);
 
   void processMC(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Mults,
-                                           aod::CentFT0Cs, aod::CentFT0CVariant1s, aod::CentFT0Ms,
-                                           aod::CentFV0As, aod::CentNTPVs, aod::CentNGlobals,
-                                           aod::CentMFTs, aod::McCollisionLabels>>::iterator const& collision,
-                   aod::BCsWithTimestamps const&, GFWTracksMC const& tracks, aod::McCollisions const&, aod::McParticles const& mcParticles)
+                                         aod::CentFT0Cs, aod::CentFT0CVariant1s, aod::CentFT0Ms,
+                                         aod::CentFV0As, aod::CentNTPVs, aod::CentNGlobals,
+                                         aod::CentMFTs, aod::McCollisionLabels>>::iterator const& collision,
+                 aod::BCsWithTimestamps const&, GFWTracksMC const& tracks, aod::McCollisions const&, aod::McParticles const& mcParticles)
   {
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
     int run = bc.runNumber();
@@ -1639,7 +1639,6 @@ struct FlowFlucGfwPp {
     processGenCollision(genCollision, mcParticles, collision.mcCollisionId(), xaxis, run, 0);
   }
   PROCESS_SWITCH(FlowFlucGfwPp, processMC, "Process analysis for Monte-Carlo data", false);
-
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
