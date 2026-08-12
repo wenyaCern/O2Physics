@@ -119,6 +119,8 @@ struct FlowFlucGfwPp {
 
   static constexpr int EllipticQVectorHarmonic = 2;
   static constexpr int TriangularQVectorHarmonic = 3;
+  static constexpr int PtEfficiencyHistogramDimension = 1;
+  static constexpr int PtEtaEfficiencyHistogramDimension = 2;
 
   O2_DEFINE_CONFIGURABLE(cfgNbootstrap, int, 10, "Number of subsamples")
   O2_DEFINE_CONFIGURABLE(cfgIsMC, bool, false, "Is MC event")
@@ -684,8 +686,8 @@ struct FlowFlucGfwPp {
       if (cfg.mEfficiency == nullptr) {
         LOGF(fatal, "Could not load efficiency histogram from %s", cfgEfficiency.value.c_str());
       }
-      if (cfg.mEfficiency->GetDimension() != 1 && cfg.mEfficiency->GetDimension() != 2) {
-        LOGF(fatal, "Efficiency object from %s has unsupported dimension %d. Expected 1D pT or 2D pT-eta.", cfgEfficiency.value.c_str(), cfg.mEfficiency->GetDimension());
+      if (cfg.mEfficiency->GetDimension() != PtEfficiencyHistogramDimension && cfg.mEfficiency->GetDimension() != PtEtaEfficiencyHistogramDimension) {
+        LOGF(fatal, "Efficiency object from %s has unsupported dimension %d. Expected pT or pT-eta.", cfgEfficiency.value.c_str(), cfg.mEfficiency->GetDimension());
       }
       LOGF(info, "Loaded %dD efficiency histogram from %s (%p)", cfg.mEfficiency->GetDimension(), cfgEfficiency.value.c_str(), (void*)cfg.mEfficiency);
     }
@@ -706,10 +708,10 @@ struct FlowFlucGfwPp {
   {
     double eff = 1.;
     if (cfg.mEfficiency) {
-      if (cfg.mEfficiency->GetDimension() == 2) {
+      if (cfg.mEfficiency->GetDimension() == PtEtaEfficiencyHistogramDimension) {
         auto* efficiencyPtEta = dynamic_cast<TH2*>(cfg.mEfficiency);
         if (efficiencyPtEta == nullptr) {
-          LOGF(fatal, "Loaded efficiency object has dimension 2 but is not a TH2");
+          LOGF(fatal, "Loaded pT-eta efficiency object is not a TH2");
           return -1.;
         }
         eff = efficiencyPtEta->GetBinContent(efficiencyPtEta->FindBin(track.pt(), track.eta()));
