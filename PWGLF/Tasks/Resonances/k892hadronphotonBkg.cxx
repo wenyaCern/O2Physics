@@ -8,17 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
-// This is a ask that computes the same-event rotational and the
-// mixed-event combinatorial backgrounds for the K*(892) -> K0S + gamma analysis.
-//  *+-+*+-+*+-+*+-+*+-+*+-+*+-+*+-+*
-//  K892 hadron-photon background task
-//  *+-+*+-+*+-+*+-+*+-+*+-+*+-+*+-+*
-//
-//    Comments, questions, complaints, suggestions?
-//    Please write to:
-//    oussama.benchikhi@cern.ch
-//
+
+/// \file k892hadronphotonBkg.cxx
+/// \brief This is a ask that computes the same-event rotational and the mixed-event combinatorial backgrounds for the K*(892) -> K0S + gamma analysis.
+/// \author Oussama Benchikhi
 
 #include "PWGLF/DataModel/LFStrangenessMLTables.h"
 #include "PWGLF/DataModel/LFStrangenessPIDTables.h"
@@ -44,7 +37,8 @@
 #include <Framework/OutputObjHeader.h>
 #include <Framework/runDataProcessing.h>
 
-#include <Math/Vector4D.h>
+#include <Math/Vector4D.h> // IWYU pragma: keep (do not replace with Math/Vector4Dfwd.h)
+#include <Math/Vector4Dfwd.h>
 #include <TH1.h>
 #include <TRandom3.h>
 
@@ -62,8 +56,15 @@ using std::array;
 using dauTracks = soa::Join<aod::DauTrackExtras, aod::DauTrackTPCPIDs>;
 using V0StandardDerivedDatas = soa::Join<aod::V0Cores, aod::V0CollRefs, aod::V0Extras, aod::V0LambdaMLScores, aod::V0AntiLambdaMLScores, aod::V0GammaMLScores>;
 
+static const std::vector<std::string> photonSels = {"No Sel", "Mass", "Y", "Neg Eta", "Pos Eta",
+                                                    "DCAToPV", "DCADau", "Radius", "Z", "CosPA",
+                                                    "Phi", "Qt", "Alpha", "TPCCR", "TPC NSigma"};
+static const std::vector<std::string> kshortSels = {"No Sel", "Mass", "Y", "Neg Eta", "Pos Eta",
+                                                    "DCAToPV", "Radius", "Z", "DCADau", "Armenteros",
+                                                    "CosPA", "TPCCR", "ITSNCls", "Lifetime", "TPC NSigma"};
+
 struct k892hadronphotonBkg {
-  Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Service<o2::ccdb::BasicCCDBManager> ccdb{};
   ctpRateFetcher rateFetcher;
   TRandom3 rotRng{12345}; // struct member; fixed seed for reproducibility across grid jobs
 
@@ -90,6 +91,8 @@ struct k892hadronphotonBkg {
     Configurable<float> kstarMaxRap{"kstarMaxRap", 0.5f, "Max |y(K*)|"};
     Configurable<int> nBkgRot{"nBkgRot", 3, "Rotations per pair (rotational bkg)"};
     Configurable<int> rotationalCut{"rotationalCut", 10, "theta band: [pi - pi/cut, pi + pi/cut]"};
+    Configurable<float> rotationalFactor{"rotationalFactor", 1.f, "Factor to scale the angle of rotation (rotationalFactor * PI)"};
+    Configurable<bool> rotGamma{"rotGamma", false, "Flag to rotate the photon direction"};
   } kstarBkgConfig;
 
   ConfigurableAxis axisVertexMixBkg{"axisVertexMixBkg", {VARIABLE_WIDTH, -10.f, -8.f, -6.f, -4.f, -2.f, 0.f, 2.f, 4.f, 6.f, 8.f, 10.f}, "z-vertex bins for mixing"};
@@ -175,6 +178,7 @@ struct k892hadronphotonBkg {
     Configurable<bool> kshortRejectPosITSafterburner{"kshortRejectPosITSafterburner", false, "reject positive track formed out of afterburner ITS tracks"};
     Configurable<bool> kshortRejectNegITSafterburner{"kshortRejectNegITSafterburner", false, "reject negative track formed out of afterburner ITS tracks"};
     Configurable<float> kshortArmenterosCoefficient{"kshortArmenterosCoefficient", 0.2, "Armenteros-Podolanski coefficient to reject lambdas"};
+    Configurable<float> kshortMaxTPCNSigmas{"kshortMaxTPCNSigmas", 1e+9, "Max |TPC NSigma| (pion hypothesis) for K0S daughters"};
   } kshortSelections;
 
   struct : ConfigurableGroup {
@@ -184,6 +188,7 @@ struct k892hadronphotonBkg {
     ConfigurableAxis axisCentrality{"axisCentrality", {VARIABLE_WIDTH, 0.0f, 5.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f, 110.0f}, "Centrality"};
     ConfigurableAxis axisKStarMass{"axisKStarMass", {500, 0.6f, 1.6f}, "M_{K^{*}} (GeV/c^{2})"};
     ConfigurableAxis axisIRBinning{"axisIRBinning", {151, -10, 1500}, "Binning for the interaction rate (kHz)"};
+    ConfigurableAxis axisCandSel{"axisCandSel", {15, 0.5f, +15.5f}, "Candidate Selection"};
   } axisConfig;
 
   void init(InitContext const&)
@@ -229,6 +234,15 @@ struct k892hadronphotonBkg {
         histos.add("GeneralQA/hCentralityVsInteractionRate", "hCentralityVsInteractionRate", kTH2D, {axisConfig.axisCentrality, axisConfig.axisIRBinning});
       }
     }
+
+    // Single-particle selection
+    histos.add("PhotonSel/hSelectionStatistics", "hSelectionStatistics", kTH1D, {axisConfig.axisCandSel});
+    for (size_t i = 0; i < photonSels.size(); ++i)
+      histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(i + 1, photonSels[i].c_str());
+
+    histos.add("KShortSel/hSelectionStatistics", "hSelectionStatistics", kTH1D, {axisConfig.axisCandSel});
+    for (size_t i = 0; i < kshortSels.size(); ++i)
+      histos.get<TH1>(HIST("KShortSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(i + 1, kshortSels[i].c_str());
 
     if (kstarBkgConfig.doSameEvtRotation || kstarBkgConfig.doEvtMixing) {
       histos.add("KStarBkg/hDeltaCollision", "hDeltaCollision", kTH1D, {{2000, -1000.f, 1000.f}});
@@ -374,18 +388,16 @@ struct k892hadronphotonBkg {
     if (eventSelections.maxIR >= 0 && interactionRate > eventSelections.maxIR) {
       return false;
     }
-    if (fillHists)
+    if (fillHists) {
       histos.fill(HIST("hEventSelection"), 19 /* Above max IR */);
-
-    // Fill centrality histogram after event selection
-    if (fillHists)
+      // Fill centrality histogram after event selection
       histos.fill(HIST("hEventCentrality"), centrality);
-
+    }
     return true;
   }
 
   //_______________________________________________
-  // Process v0 photon candidate (data only, no QA fills)
+  // Process v0 photon candidate
   template <typename TV0Object>
   bool processPhotonCandidate(TV0Object const& gamma)
   {
@@ -402,61 +414,77 @@ struct k892hadronphotonBkg {
     } else {
       // Standard selection
       // Gamma basic selection criteria:
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 1.);
       if ((gamma.mGamma() < 0) || (gamma.mGamma() > photonSelections.photonMaxMass))
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 2.);
       if ((photonY < photonSelections.photonMinRapidity) || (photonY > photonSelections.photonMaxRapidity))
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 3.);
       if (gamma.negativeeta() < photonSelections.photonDauEtaMin || gamma.negativeeta() > photonSelections.photonDauEtaMax)
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 4.);
       if (gamma.positiveeta() < photonSelections.photonDauEtaMin || gamma.positiveeta() > photonSelections.photonDauEtaMax)
         return false;
 
-      if ((TMath::Abs(gamma.dcapostopv()) < photonSelections.photonMinDCADauToPv) || (TMath::Abs(gamma.dcanegtopv()) < photonSelections.photonMinDCADauToPv))
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 5.);
+      if ((std::abs(gamma.dcapostopv()) < photonSelections.photonMinDCADauToPv) || (std::abs(gamma.dcanegtopv()) < photonSelections.photonMinDCADauToPv))
         return false;
 
-      if (TMath::Abs(gamma.dcaV0daughters()) > photonSelections.photonMaxDCAV0Dau)
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 6.);
+      if (std::abs(gamma.dcaV0daughters()) > photonSelections.photonMaxDCAV0Dau)
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 7.);
       if ((gamma.v0radius() < photonSelections.photonMinRadius) || (gamma.v0radius() > photonSelections.photonMaxRadius))
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 8.);
       if ((gamma.z() < photonSelections.photonMinZ) || (gamma.z() > photonSelections.photonMaxZ))
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 9.);
       if (gamma.v0cosPA() < photonSelections.photonMinV0cospa)
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 10.);
       float photonPhi = RecoDecay::phi(gamma.px(), gamma.py());
       if ((((photonPhi > photonSelections.photonPhiMin1) && (photonPhi < photonSelections.photonPhiMax1)) || ((photonPhi > photonSelections.photonPhiMin2) && (photonPhi < photonSelections.photonPhiMax2))) && ((photonSelections.photonPhiMin1 != -1) && (photonSelections.photonPhiMax1 != -1) && (photonSelections.photonPhiMin2 != -1) && (photonSelections.photonPhiMax2 != -1)))
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 11.);
       if (gamma.qtarm() > photonSelections.photonMaxQt)
         return false;
 
-      if (TMath::Abs(gamma.alpha()) > photonSelections.photonMaxAlpha)
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 12.);
+      if (std::abs(gamma.alpha()) > photonSelections.photonMaxAlpha)
         return false;
 
       auto posTrackGamma = gamma.template posTrackExtra_as<dauTracks>();
       auto negTrackGamma = gamma.template negTrackExtra_as<dauTracks>();
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 13.);
       if ((posTrackGamma.tpcCrossedRows() < photonSelections.photonMinTPCCrossedRows) || (negTrackGamma.tpcCrossedRows() < photonSelections.photonMinTPCCrossedRows))
         return false;
 
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 14.);
       if (((posTrackGamma.tpcNSigmaEl() < photonSelections.photonMinTPCNSigmas) || (posTrackGamma.tpcNSigmaEl() > photonSelections.photonMaxTPCNSigmas)))
         return false;
 
       if (((negTrackGamma.tpcNSigmaEl() < photonSelections.photonMinTPCNSigmas) || (negTrackGamma.tpcNSigmaEl() > photonSelections.photonMaxTPCNSigmas)))
         return false;
+
+      histos.fill(HIST("PhotonSel/hSelectionStatistics"), 15.);
     }
 
     return true;
   }
 
   //_______________________________________________
-  // Process K0Short candidate (data only, no QA fills)
+  // Process K0Short candidate
   template <typename TV0Object, typename TCollision>
   bool processKShortCandidate(TV0Object const& kshort, TCollision const& collision)
   {
@@ -467,58 +495,78 @@ struct k892hadronphotonBkg {
     if (useMLScores) {
       // if (kshort.k0ShortBDTScore() <= kshortSelections.kshortMLThreshold)
       return false;
-
-    } else {
-      // KShort basic selection criteria:
-      if ((TMath::Abs(kshort.mK0Short() - o2::constants::physics::MassK0Short) > kshortSelections.kshortWindow) && kshortSelections.kshortWindow > 0)
-        return false;
-
-      if ((kshort.yK0Short() < kshortSelections.kshortMinRapidity) || (kshort.yK0Short() > kshortSelections.kshortMaxRapidity))
-        return false;
-
-      if ((kshort.negativeeta() < kshortSelections.kshortDauEtaMin) || (kshort.negativeeta() > kshortSelections.kshortDauEtaMax))
-        return false;
-
-      if ((kshort.positiveeta() < kshortSelections.kshortDauEtaMin) || (kshort.positiveeta() > kshortSelections.kshortDauEtaMax))
-        return false;
-
-      if ((TMath::Abs(kshort.dcapostopv()) < kshortSelections.kshortMinDCAPosToPv) || (TMath::Abs(kshort.dcanegtopv()) < kshortSelections.kshortMinDCANegToPv))
-        return false;
-
-      if ((kshort.v0radius() < kshortSelections.kshortMinv0radius) || (kshort.v0radius() > kshortSelections.kshortMaxv0radius))
-        return false;
-
-      if ((kshort.z() < kshortSelections.kshortMinZ) || (kshort.z() > kshortSelections.kshortMaxZ))
-        return false;
-
-      if (TMath::Abs(kshort.dcaV0daughters()) > kshortSelections.kshortMaxDCAV0Dau)
-        return false;
-
-      if (kshort.qtarm() < kshortSelections.kshortArmenterosCoefficient * TMath::Abs(kshort.alpha()))
-        return false;
-
-      if (kshort.v0cosPA() < kshortSelections.kshortMinv0cospa)
-        return false;
-
-      auto posTrackKShort = kshort.template posTrackExtra_as<dauTracks>();
-      auto negTrackKShort = kshort.template negTrackExtra_as<dauTracks>();
-
-      if ((posTrackKShort.tpcCrossedRows() < kshortSelections.kshortMinTPCCrossedRows) || (negTrackKShort.tpcCrossedRows() < kshortSelections.kshortMinTPCCrossedRows))
-        return false;
-
-      // MinITSCls
-      bool posIsFromAfterburner = posTrackKShort.itsChi2PerNcl() < 0;
-      bool negIsFromAfterburner = negTrackKShort.itsChi2PerNcl() < 0;
-
-      if (posTrackKShort.itsNCls() < kshortSelections.kshortMinITSclusters && (!kshortSelections.kshortRejectPosITSafterburner || posIsFromAfterburner))
-        return false;
-      if (negTrackKShort.itsNCls() < kshortSelections.kshortMinITSclusters && (!kshortSelections.kshortRejectNegITSafterburner || negIsFromAfterburner))
-        return false;
-
-      float fKShortLifeTime = kshort.distovertotmom(collision.posX(), collision.posY(), collision.posZ()) * o2::constants::physics::MassK0Short;
-      if (fKShortLifeTime > kshortSelections.kshortMaxLifeTime)
-        return false;
     }
+
+    // KShort basic selection criteria:
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 1.);
+    if ((std::abs(kshort.mK0Short() - o2::constants::physics::MassK0Short) > kshortSelections.kshortWindow) && kshortSelections.kshortWindow > 0)
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 2.);
+    if ((kshort.yK0Short() < kshortSelections.kshortMinRapidity) || (kshort.yK0Short() > kshortSelections.kshortMaxRapidity))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 3.);
+    if ((kshort.negativeeta() < kshortSelections.kshortDauEtaMin) || (kshort.negativeeta() > kshortSelections.kshortDauEtaMax))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 4.);
+    if ((kshort.positiveeta() < kshortSelections.kshortDauEtaMin) || (kshort.positiveeta() > kshortSelections.kshortDauEtaMax))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 5.);
+    if ((std::abs(kshort.dcapostopv()) < kshortSelections.kshortMinDCAPosToPv) || (std::abs(kshort.dcanegtopv()) < kshortSelections.kshortMinDCANegToPv))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 6.);
+    if ((kshort.v0radius() < kshortSelections.kshortMinv0radius) || (kshort.v0radius() > kshortSelections.kshortMaxv0radius))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 7.);
+    if ((kshort.z() < kshortSelections.kshortMinZ) || (kshort.z() > kshortSelections.kshortMaxZ))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 8.);
+    if (std::abs(kshort.dcaV0daughters()) > kshortSelections.kshortMaxDCAV0Dau)
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 9.);
+    if (kshort.qtarm() < kshortSelections.kshortArmenterosCoefficient * std::abs(kshort.alpha()))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 10.);
+    if (kshort.v0cosPA() < kshortSelections.kshortMinv0cospa)
+      return false;
+
+    auto posTrackKShort = kshort.template posTrackExtra_as<dauTracks>();
+    auto negTrackKShort = kshort.template negTrackExtra_as<dauTracks>();
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 11.);
+    if ((posTrackKShort.tpcCrossedRows() < kshortSelections.kshortMinTPCCrossedRows) || (negTrackKShort.tpcCrossedRows() < kshortSelections.kshortMinTPCCrossedRows))
+      return false;
+
+    // MinITSCls
+    bool posIsFromAfterburner = posTrackKShort.itsChi2PerNcl() < 0;
+    bool negIsFromAfterburner = negTrackKShort.itsChi2PerNcl() < 0;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 12.);
+    if (posTrackKShort.itsNCls() < kshortSelections.kshortMinITSclusters && (!kshortSelections.kshortRejectPosITSafterburner || posIsFromAfterburner))
+      return false;
+    if (negTrackKShort.itsNCls() < kshortSelections.kshortMinITSclusters && (!kshortSelections.kshortRejectNegITSafterburner || negIsFromAfterburner))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 13.);
+    float fKShortLifeTime = kshort.distovertotmom(collision.posX(), collision.posY(), collision.posZ()) * o2::constants::physics::MassK0Short;
+    if (fKShortLifeTime > kshortSelections.kshortMaxLifeTime)
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 14.);
+    // TPC PID selection on the K0S pion daughters (same convention as posTrackKShort.tpcNSigmaPi())
+    if (((std::abs(posTrackKShort.tpcNSigmaPi()) > kshortSelections.kshortMaxTPCNSigmas) ||
+         (std::abs(negTrackKShort.tpcNSigmaPi()) > kshortSelections.kshortMaxTPCNSigmas)))
+      return false;
+
+    histos.fill(HIST("KShortSel/hSelectionStatistics"), 15.);
     return true;
   }
 
@@ -544,15 +592,24 @@ struct k892hadronphotonBkg {
         ROOT::Math::PtEtaPhiMVector pGamma(photon.pt(),
                                            photon.eta(),
                                            photon.phi(),
-                                           0.0);
+                                           o2::constants::physics::MassGamma);
+
+        ROOT::Math::PtEtaPhiMVector pKShort(kshort.pt(),
+                                            kshort.eta(),
+                                            kshort.phi(),
+                                            o2::constants::physics::MassK0Short);
 
         for (int irot = 0; irot < kstarBkgConfig.nBkgRot; ++irot) {
-          float theta = rotRng.Uniform(o2::constants::math::PI - o2::constants::math::PI / kstarBkgConfig.rotationalCut,
-                                       o2::constants::math::PI + o2::constants::math::PI / kstarBkgConfig.rotationalCut);
+          float theta = rotRng.Uniform(kstarBkgConfig.rotationalFactor * o2::constants::math::PI - o2::constants::math::PI / kstarBkgConfig.rotationalCut,
+                                       kstarBkgConfig.rotationalFactor * o2::constants::math::PI + o2::constants::math::PI / kstarBkgConfig.rotationalCut);
 
           ROOT::Math::PtEtaPhiMVector kRot(kshort.pt(), kshort.eta(), kshort.phi() + theta, o2::constants::physics::MassK0Short);
+          ROOT::Math::PtEtaPhiMVector gRot(photon.pt(), photon.eta(), photon.phi() + theta, o2::constants::physics::MassGamma);
 
           auto kstar = pGamma + kRot;
+          if (kstarBkgConfig.rotGamma) {
+            kstar = gRot + pKShort;
+          }
 
           float rapidity = RecoDecay::y(std::array{static_cast<float>(kstar.Px()),
                                                    static_cast<float>(kstar.Py()),
@@ -563,6 +620,10 @@ struct k892hadronphotonBkg {
 
           // Opening angle between photon and rotated K0s (QA only, not used as a cut)
           double cosOA = pGamma.Vect().Dot(kRot.Vect()) / (pGamma.P() * kRot.P());
+          if (kstarBkgConfig.rotGamma) {
+            cosOA = gRot.Vect().Dot(pKShort.Vect()) / (gRot.P() * pKShort.P());
+          }
+
           double openAngle = std::acos(cosOA);
 
           histos.fill(HIST("KStarBkg/h2dRotKStarMassVsPt"), kstar.M(), kstar.Pt());
@@ -627,8 +688,7 @@ struct k892hadronphotonBkg {
       return;
 
     // Build the mixing binning locally: a struct member initialized from a
-    // ConfigurableAxis captures the default bins at task construction time (before
-    // the framework applies JSON overrides), silently ignoring user configuration.
+    // ConfigurableAxis captures the default bins at task construction time
     BkgBinningType bkgColBinning{{axisVertexMixBkg, axisCentralityMixBkg}, true};
 
     for (const auto& [coll1, coll2] : selfCombinations(bkgColBinning, kstarBkgConfig.nMix, -1,

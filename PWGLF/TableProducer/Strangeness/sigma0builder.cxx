@@ -9,17 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-// This is a task that employs the standard V0 tables and attempts to combine
-// two V0s into a Sigma0 -> Lambda + gamma candidate.
-//  *+-+*+-+*+-+*+-+*+-+*+-+*+-+*+-+*
-//  Sigma0 builder task
-//  *+-+*+-+*+-+*+-+*+-+*+-+*+-+*+-+*
-//
-//    Comments, questions, complaints, suggestions?
-//    Please write to:
-//    gianni.shigeru.setoue.liveraro@cern.ch
-//    oussama.benchikhi@cern.ch
-//
+
+/// \file sigma0builder.cxx
+/// \brief This is a task that employs the standard V0 tables and attempts to combine two V0s into a Sigma0 -> Lambda + gamma candidate.
+/// \author Gianni Shigeru Setoue Liveraro
+/// \author Oussama Benchikhi
 
 #include "PWGEM/PhotonMeson/Utils/MCUtilities.h"
 #include "PWGJE/DataModel/EMCALClusters.h"
@@ -39,6 +33,7 @@
 #include <Framework/AnalysisDataModel.h>
 #include <Framework/AnalysisHelpers.h>
 #include <Framework/AnalysisTask.h>
+#include <Framework/Concepts.h>
 #include <Framework/Configurable.h>
 #include <Framework/HistogramRegistry.h>
 #include <Framework/HistogramSpec.h>
@@ -286,6 +281,7 @@ struct sigma0builder {
     Configurable<bool> KShortRejectPosITSafterburner{"KShortRejectPosITSafterburner", false, "reject positive track formed out of afterburner ITS tracks"};
     Configurable<bool> KShortRejectNegITSafterburner{"KShortRejectNegITSafterburner", false, "reject negative track formed out of afterburner ITS tracks"};
     Configurable<float> KShortArmenterosCoefficient{"KShortArmenterosCoefficient", 0.2, "Armenteros-Podolanski coefficient to reject lambdas"};
+    Configurable<float> KShortMaxTPCNSigmas{"KShortMaxTPCNSigmas", 1e+9, "Max |TPC NSigma| (pion hypothesis) for K0S daughters"};
   } kshortSelections;
 
   // KStar criteria:
@@ -477,8 +473,9 @@ struct sigma0builder {
       histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(9, "Z");
       histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(10, "CosPA");
       histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(11, "Phi");
-      histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(12, "TPCCR");
-      histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(13, "TPC NSigma");
+      histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(12, "Armenteros");
+      histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(13, "TPCCR");
+      histos.get<TH1>(HIST("PhotonSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(14, "TPC NSigma");
 
       if (doprocessPCMVsEMCalQA) {
         histos.add("EMCalPhotonSel/hSelectionStatistics", "hSelectionStatistics", kTH1D, {axisConfig.axisCandSel});
@@ -545,6 +542,7 @@ struct sigma0builder {
     histos.get<TH1>(HIST("KShortSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(12, "TPCCR");
     histos.get<TH1>(HIST("KShortSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(13, "ITSNCls");
     histos.get<TH1>(HIST("KShortSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(14, "Lifetime");
+    histos.get<TH1>(HIST("KShortSel/hSelectionStatistics"))->GetXaxis()->SetBinLabel(15, "TPC NSigma");
 
     if (doprocessRealData || doprocessRealDataWithTOF || doprocessRealDataWithEMCal || doprocessMonteCarlo || doprocessMonteCarloWithTOF || doprocessMonteCarloWithEMCal) {
       histos.add("SigmaSel/hSigma0DauDeltaIndex", "hSigma0DauDeltaIndex", kTH1F, {{100, -49.5f, 50.5f}});
@@ -814,6 +812,10 @@ struct sigma0builder {
     int V02PDGCode = 0;
     int V01PDGCodeMother = 0;
     int V02PDGCodeMother = 0;
+    int V01PDGCodeGrandMother = 0;
+    int V02PDGCodeGrandMother = 0;
+    int V01GlobalIndexGrandMother = 0;
+    int V02GlobalIndexGrandMother = 0;
     int V0PairPDGCode = 0;
     int V0PairPDGCodeMother = 0;
     int V0PairMCProcess = -1;
@@ -958,6 +960,46 @@ struct sigma0builder {
     if (!MCMothersList_v01.empty() && !MCMothersList_v02.empty()) { // Are there mothers?
       auto const& MCMother_v01 = MCMothersList_v01.front();         // First mother
       auto const& MCMother_v02 = MCMothersList_v02.front();         // First mother
+
+      // Add the grandmothers
+      auto const& GrandMothersList_v01 = MCMother_v01.template mothers_as<aod::McParticles>();
+      if (!GrandMothersList_v01.empty()) {
+        MCinfo.V01PDGCodeGrandMother = GrandMothersList_v01.front().pdgCode();
+        MCinfo.V01GlobalIndexGrandMother = GrandMothersList_v01.front().globalIndex();
+      }
+
+      auto const& GrandMothersList_v02 = MCMother_v02.template mothers_as<aod::McParticles>();
+      if (!GrandMothersList_v02.empty()) {
+        MCinfo.V02PDGCodeGrandMother = GrandMothersList_v02.front().pdgCode();
+        MCinfo.V02GlobalIndexGrandMother = GrandMothersList_v02.front().globalIndex();
+      }
+
+      // check grandmothers and fill histograms
+      int kShortMotherCode = 0;
+      int photonMotherCode = 0;
+      if ((std::abs(MCParticle_v01.pdgCode()) == PDG_t::kGamma) && (std::abs(MCParticle_v02.pdgCode()) == PDG_t::kK0Short) && (!fIsKStar)) {
+
+        kShortMotherCode = MCMother_v02.pdgCode();
+
+        // If the KShort mother is a (anti)Kaon, use the grandmother instead
+        if (std::abs(kShortMotherCode) == PDG_t::kK0) {
+          auto const& kShortGrandMothers = MCMother_v02.template mothers_as<aod::McParticles>();
+          if (!kShortGrandMothers.empty()) {
+            kShortMotherCode = kShortGrandMothers.front().pdgCode();
+          }
+        }
+
+        photonMotherCode = MCMother_v01.pdgCode();
+        // If the photon mother is a pi0, climb to grandmother
+        if (std::abs(photonMotherCode) == PDG_t::kPi0) {
+          auto const& photonGrandMothers = MCMother_v01.template mothers_as<aod::McParticles>();
+          if (!photonGrandMothers.empty()) {
+            photonMotherCode = photonGrandMothers.front().pdgCode();
+          }
+        }
+
+        histos.fill(HIST("MCQA/h2dTrueDaughtersMatrix"), kShortMotherCode, photonMotherCode);
+      }
 
       if (MCMother_v01.globalIndex() == MCMother_v02.globalIndex()) { // Is it the same mother?
 
@@ -1333,13 +1375,11 @@ struct sigma0builder {
     if (eventSelections.maxIR >= 0 && interactionRate > eventSelections.maxIR) {
       return false;
     }
-    if (fillHists)
+    if (fillHists) {
       histos.fill(HIST("hEventSelection"), 19 /* Above max IR */);
-
-    // Fill centrality histogram after event selection
-    if (fillHists)
+      // Fill centrality histogram after event selection
       histos.fill(HIST("hEventCentrality"), centrality);
-
+    }
     return true;
   }
 
@@ -2206,6 +2246,11 @@ struct sigma0builder {
         return false;
 
       histos.fill(HIST("KShortSel/hSelectionStatistics"), 14.);
+      if (((TMath::Abs(posTrackKShort.tpcNSigmaPi()) > kshortSelections.KShortMaxTPCNSigmas) ||
+           (TMath::Abs(negTrackKShort.tpcNSigmaPi()) > kshortSelections.KShortMaxTPCNSigmas)))
+        return false;
+
+      histos.fill(HIST("KShortSel/hSelectionStatistics"), 15.);
     }
     return true;
   }
@@ -2559,9 +2604,9 @@ struct sigma0builder {
 
       kstarmccores(kstarMCInfo.V0PairMCRadius, kstarMCInfo.V0PairPDGCode, kstarMCInfo.V0PairPDGCodeMother, kstarMCInfo.V0PairMCProcess, kstarMCInfo.fV0PairProducedByGenerator,
                    kstarMCInfo.V01MCpx, kstarMCInfo.V01MCpy, kstarMCInfo.V01MCpz,
-                   kstarMCInfo.fIsV01Primary, kstarMCInfo.V01PDGCode, kstarMCInfo.V01PDGCodeMother, kstarMCInfo.fIsV01CorrectlyAssign,
+                   kstarMCInfo.fIsV01Primary, kstarMCInfo.V01PDGCode, kstarMCInfo.V01PDGCodeMother, kstarMCInfo.V01PDGCodeGrandMother, kstarMCInfo.V01GlobalIndexGrandMother, kstarMCInfo.fIsV01CorrectlyAssign,
                    kstarMCInfo.V02MCpx, kstarMCInfo.V02MCpy, kstarMCInfo.V02MCpz,
-                   kstarMCInfo.fIsV02Primary, kstarMCInfo.V02PDGCode, kstarMCInfo.V02PDGCodeMother, kstarMCInfo.fIsV02CorrectlyAssign);
+                   kstarMCInfo.fIsV02Primary, kstarMCInfo.V02PDGCode, kstarMCInfo.V02PDGCodeMother, kstarMCInfo.V02PDGCodeGrandMother, kstarMCInfo.V02GlobalIndexGrandMother, kstarMCInfo.fIsV02CorrectlyAssign);
     }
 
     // KStar -> stracollisions link
@@ -2763,9 +2808,9 @@ struct sigma0builder {
           }
         }
 
-        //_______________________________________________
-        // KStar loop
         if constexpr (!soa::is_table<TEMCal>) { // Don't use EMCal clusters here
+          //_______________________________________________
+          // KStar loop
           if (fillKStarTables) {
             auto gamma1 = fullV0s.rawIteratorAt(bestGammasArray[i]);
             for (size_t j = 0; j < bestKShortsArray.size(); ++j) {
@@ -2776,11 +2821,9 @@ struct sigma0builder {
                 continue;
             }
           }
-        }
 
-        //_______________________________________________
-        // pi0 loop
-        if constexpr (!soa::is_table<TEMCal>) { // Don't use EMCal clusters here
+          //_______________________________________________
+          // pi0 loop
           if (fillPi0Tables) {
             auto gamma1 = fullV0s.rawIteratorAt(bestGammasArray[i]);
             for (size_t j = i + 1; j < bestGammasArray.size(); ++j) {
